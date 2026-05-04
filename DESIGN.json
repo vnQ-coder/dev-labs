@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-02T00:00:00Z",
+  "title": "Design System: System Design Lab",
+  "extensions": {
+    "colorMeta": {
+      "arctic-signal":   { "role": "primary",   "displayName": "Arctic Signal",   "canonical": "oklch(79% 0.12 220)", "tonalRamp": ["#0a1f2e", "#0f3347", "#164e73", "#1a6a9e", "#2389c4", "#38bdf8", "#6dd2fa", "#a8e8fd"] },
+      "circuit-green":   { "role": "secondary",  "displayName": "Circuit Green",   "canonical": "oklch(76% 0.15 162)", "tonalRamp": ["#051f12", "#073d21", "#0a5d32", "#0d7d44", "#10a65c", "#34d399", "#6ee7b7", "#a7f3d0"] },
+      "plasma-violet":   { "role": "secondary",  "displayName": "Plasma Violet",   "canonical": "oklch(69% 0.18 294)", "tonalRamp": ["#160d2e", "#221650", "#2e1f72", "#3c2a98", "#5139c0", "#a78bfa", "#c4b5fd", "#ddd6fe"] },
+      "amber-alert":     { "role": "tertiary",   "displayName": "Amber Alert",     "canonical": "oklch(74% 0.16 83)",  "tonalRamp": ["#1f1000", "#3d2100", "#5c3100", "#7d4400", "#a55c00", "#f59e0b", "#fbbf24", "#fde68a"] },
+      "ember":           { "role": "tertiary",   "displayName": "Ember",           "canonical": "oklch(72% 0.18 50)",  "tonalRamp": ["#1f0900", "#3d1400", "#5c1e00", "#7d2b00", "#a53c00", "#f97316", "#fb923c", "#fed7aa"] },
+      "fault-red":       { "role": "tertiary",   "displayName": "Fault Red",       "canonical": "oklch(66% 0.17 23)",  "tonalRamp": ["#1f0505", "#3d0a0a", "#5c0d0d", "#7d1010", "#a51515", "#f87171", "#fca5a5", "#fed7d7"] },
+      "deep-space":      { "role": "neutral",    "displayName": "Deep Space",      "canonical": "oklch(6% 0.01 240)",  "tonalRamp": ["#04080f", "#080d18", "#0d1422", "#141d30", "#1e2d45", "#2d3f5e", "#3d5378", "#4f6a96"] },
+      "midnight-slate":  { "role": "neutral",    "displayName": "Midnight Slate",  "canonical": "oklch(8% 0.012 240)", "tonalRamp": ["#04080f", "#080d18", "#0d1422", "#141d30", "#1e2d45", "#2d3f5e", "#3d5378", "#4f6a96"] },
+      "navy-well":       { "role": "neutral",    "displayName": "Navy Well",       "canonical": "oklch(11% 0.015 240)","tonalRamp": ["#04080f", "#080d18", "#0d1422", "#141d30", "#1e2d45", "#2d3f5e", "#3d5378", "#4f6a96"] },
+      "titanium-white":  { "role": "neutral",    "displayName": "Titanium White",  "canonical": "oklch(92% 0.006 248)","tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"] },
+      "slate-fog":       { "role": "neutral",    "displayName": "Slate Fog",       "canonical": "oklch(52% 0.02 245)", "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Hero headline only. Three stacked words, maximum weight, full viewport impact." },
+      "headline": { "displayName": "Headline", "purpose": "Concept titles and primary section identifiers. Color matches concept hue." },
+      "title":    { "displayName": "Title",    "purpose": "Sub-section headers, sidebar logo mark, tab group labels." },
+      "body":     { "displayName": "Body",     "purpose": "All explanatory and reading content. Cap at 65-70ch." },
+      "label":    { "displayName": "Label",    "purpose": "Metadata, category headers, counters. Always uppercase." },
+      "mono":     { "displayName": "Mono",     "purpose": "Architecture terms, command references, technical diagram labels." }
+    },
+    "shadows": [
+      {
+        "name": "accent-glow",
+        "value": "0 0 40px rgba(56,189,248,0.3)",
+        "purpose": "Hero primary CTA only. Signals the single entry action on the landing page. Do not replicate on interior surfaces."
+      }
+    ],
+    "motion": [
+      { "name": "ease-out-standard", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for all state transitions and panel entrances." },
+      { "name": "duration-fast",     "value": "180ms",                          "purpose": "Tab content switch, opacity transitions." },
+      { "name": "duration-base",     "value": "200ms",                          "purpose": "Quiz slide transitions, modal fades." },
+      { "name": "duration-slow",     "value": "500ms",                          "purpose": "Progress bar fill width animation." },
+      { "name": "scale-hover",       "value": "1.05",                           "purpose": "CTA button hover scale." },
+      { "name": "scale-tap",         "value": "0.97",                           "purpose": "CTA button tap feedback." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px", "purpose": "Mobile/desktop split. Below this: mobile top bar + drawer nav. Above: sidebar always visible." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary CTA Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single entry action per screen. Gradient fill, glow shadow, motion feedback.",
+      "html": "<button class=\"ds-btn-primary\">Enter the Lab →</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 1rem 2.5rem; border-radius: 0.75rem; font-family: 'Syne', sans-serif; font-size: 1.125rem; font-weight: 600; color: #ffffff; background: linear-gradient(135deg, #38bdf8, #a78bfa); border: none; cursor: pointer; box-shadow: 0 0 40px rgba(56,189,248,0.3); transition: transform 180ms cubic-bezier(0.16,1,0.3,1), box-shadow 180ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 60px rgba(56,189,248,0.45); } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }"
+    },
+    {
+      "name": "Tab Button (inactive)",
+      "kind": "button",
+      "refersTo": "button-tab",
+      "description": "Concept navigation tab at rest. Transparent, muted text.",
+      "html": "<button class=\"ds-tab\">⚙️ Technical</button>",
+      "css": ".ds-tab { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 1rem; border-radius: 0.75rem; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: #64748b; background: transparent; border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: background 180ms, color 180ms, border-color 180ms; } .ds-tab:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; } .ds-tab:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Tab Button (active)",
+      "kind": "button",
+      "refersTo": "button-tab-active",
+      "description": "Concept navigation tab in active state. Tinted with concept color.",
+      "html": "<button class=\"ds-tab ds-tab--active\" style=\"--concept-color: #38bdf8\">⚙️ Technical</button>",
+      "css": ".ds-tab--active { background: rgba(56,189,248,0.12); color: #38bdf8; border-color: rgba(56,189,248,0.25); }"
+    },
+    {
+      "name": "Category Chip (inactive)",
+      "kind": "chip",
+      "refersTo": "chip-category",
+      "description": "Sidebar concept category filter pill at rest.",
+      "html": "<button class=\"ds-chip\">Infrastructure</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 9999px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; color: #64748b; background: #0d1422; border: 1px solid rgba(255,255,255,0.10); cursor: pointer; transition: background 150ms, color 150ms, border-color 150ms; } .ds-chip:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.18); } .ds-chip:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Category Chip (active)",
+      "kind": "chip",
+      "refersTo": "chip-category-active",
+      "description": "Sidebar category chip in selected state. Solid color fill.",
+      "html": "<button class=\"ds-chip ds-chip--active\" style=\"--cat-color: #38bdf8\">Infrastructure</button>",
+      "css": ".ds-chip--active { background: var(--cat-color, #38bdf8); color: #04080f; border-color: var(--cat-color, #38bdf8); font-weight: 600; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Sidebar concept search. Navy Well background, subtle border, no visible label.",
+      "html": "<input class=\"ds-input-search\" type=\"text\" placeholder=\"Search concepts...\" />",
+      "css": ".ds-input-search { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; color: #e2e8f0; background: #0d1422; border: 1px solid rgba(255,255,255,0.10); outline: none; transition: border-color 150ms; } .ds-input-search::placeholder { color: #64748b; } .ds-input-search:focus { border-color: rgba(56,189,248,0.4); }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "General content container. Used for quiz question cards, concept content panels.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card__label\">Question 1</p><p class=\"ds-card__body\">What does CAP Theorem state?</p></div>",
+      "css": ".ds-card { background: #0d1422; border: 1px solid rgba(255,255,255,0.10); border-radius: 1rem; padding: 1.5rem; } .ds-card__label { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #f87171; margin: 0 0 0.75rem; } .ds-card__body { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; line-height: 1.65; color: #e2e8f0; margin: 0; }"
+    },
+    {
+      "name": "Concept Icon Container",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component. 56px square container for concept emoji, tinted with concept color.",
+      "html": "<div class=\"ds-concept-icon\" style=\"--concept-color: #38bdf8\">⚡</div>",
+      "css": ".ds-concept-icon { width: 3.5rem; height: 3.5rem; border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.19); }"
+    },
+    {
+      "name": "Sidebar Nav Item (active)",
+      "kind": "nav",
+      "refersTo": "nav-sidebar",
+      "description": "Sidebar concept list button in active/selected state.",
+      "html": "<button class=\"ds-nav-item ds-nav-item--active\" style=\"--concept-color: #38bdf8\"><span class=\"ds-nav-item__icon\">⚡</span><div><div class=\"ds-nav-item__title\">Caching</div><div class=\"ds-nav-item__tag\">Performance pattern</div></div></button>",
+      "css": ".ds-nav-item { width: 100%; display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; background: transparent; border: 1px solid transparent; cursor: pointer; text-align: left; transition: background 150ms, border-color 150ms; } .ds-nav-item:hover { background: rgba(255,255,255,0.04); } .ds-nav-item--active { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.25); } .ds-nav-item__icon { font-size: 1rem; flex-shrink: 0; } .ds-nav-item__title { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: #38bdf8; } .ds-nav-item__tag { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: #64748b; margin-top: 0.125rem; } .ds-nav-item:not(.ds-nav-item--active) .ds-nav-item__title { color: #e2e8f0; } .ds-nav-item:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Engineer's War Room",
+    "overview": "System Design Lab is built for a specific person in a specific moment: a software engineer with an interview in 48 hours who needs to understand distributed systems well enough to whiteboard them confidently. The interface reflects that context. It is dark, dense, and direct — the visual equivalent of a dim ops center where every signal on screen matters and nothing decorative earns wall space.\n\nThe system works through tonal depth, not shadow. Four surface layers stack from #04080f (base) to #141d30 (elevated card), creating hierarchy without blur or drop-shadow. Color is reserved for meaning: each concept owns a hue that persists across its icon, active state, and section header. The primary accent (#38bdf8 arctic signal) marks navigation state and primary actions; all other colors are concept-assigned, not decorative.\n\nThis is not an edtech platform. There are no progress bars, no encouraging emoji headers, no pastel cards with stock illustrations. The only celebration is understanding.",
+    "keyCharacteristics": [
+      "Tonal layering over shadow elevation",
+      "Multi-hue accent system, each color concept-assigned and semantically consistent",
+      "Syne display + DM Sans body + Fira Code mono: the technical triple stack",
+      "Minimal chrome, maximum content density",
+      "Dark by default, not by fashion"
+    ],
+    "rules": [
+      { "name": "The Categorical Color Rule", "body": "Every system design concept owns a color. That color saturates its icon container, its active nav border, its tab selected state, and its section header. It does not appear anywhere outside that concept's context. Color is identity, not decoration.", "section": "colors" },
+      { "name": "The Restraint Ceiling", "body": "Arctic Signal (#38bdf8) appears on ≤15% of any screen. Its rarity is the signal. When it appears on two things at once, one of them is wrong.", "section": "colors" },
+      { "name": "The Syne-Only Rule", "body": "Syne is for structural identifiers: the product name, concept titles, section heads, CTA labels. DM Sans handles everything the user reads. Never use Syne for body text or multi-line paragraphs.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Every surface is flat at rest. No card has a shadow. Elevation is expressed only through background-color difference. If you're reaching for box-shadow, use a higher surface layer instead.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the concept's assigned color for all active and selected states within that concept's context — icon container, nav item, tab button, section header.",
+      "Do use tonal layering (surface steps) to express depth. Deep Space → Midnight Slate → Navy Well → Dusk Surface.",
+      "Do set Syne at 800–900 weight for all display and headline use.",
+      "Do cap reading-panel line length at 65–70ch.",
+      "Do use prefers-reduced-motion to disable Framer Motion transitions.",
+      "Do use the Fira Code mono stack for architectural terminology and technical labels.",
+      "Do keep Arctic Signal (#38bdf8) to navigation state and the primary CTA."
+    ],
+    "donts": [
+      "Don't use gradient text (background-clip: text + gradient fill). The hero currently does this — it is a known violation. New surfaces must use solid colors.",
+      "Don't use border-left or border-right greater than 1px as a decorative accent stripe. Rewrite with background tint or full border.",
+      "Don't add drop shadows to cards, sidebar panels, or modals. The Flat-By-Default Rule is absolute inside the /lab surface.",
+      "Don't add progress bars as motivational scaffolding. Quiz progress is functional only.",
+      "Don't use pastel backgrounds, rounded-3xl card stacks, or icon-plus-heading-plus-text card grids.",
+      "Don't use glassmorphism (backdrop-filter: blur) decoratively.",
+      "Don't add secondary filled buttons. Every non-primary action is a ghost tab or chip.",
+      "Don't introduce a new accent color that isn't concept-assigned.",
+      "Don't use Syne for body copy or multi-line paragraphs."
+    ]
+  }
+}

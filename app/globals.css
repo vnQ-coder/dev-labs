@@ -1,26 +1,188 @@
 @import "tailwindcss";
 
+/* ── Fonts ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Dark theme (default) ── */
+:root {
+  --bg: #060a12;
+  --s1: #090e1a;
+  --s2: #0e1625;
+  --s3: #151f34;
+  --b0: rgba(255, 255, 255, 0.04);
+  --b1: rgba(255, 255, 255, 0.09);
+  --b2: rgba(255, 255, 255, 0.16);
+
+  --p: #38bdf8;    /* sky-400  — primary / links */
+  --g: #34d399;    /* emerald  — success / choose */
+  --a: #f59e0b;    /* amber    — warning / accent */
+  --o: #f97316;    /* orange   — messaging */
+  --v: #a78bfa;    /* violet   — data */
+  --r: #f87171;    /* red      — error / avoid */
+  --pk: #e879f9;   /* fuchsia  — highlight */
+
+  --t: #e2e8f0;    /* primary text */
+  --tm: #64748b;   /* muted text */
+  --td: #1e2d45;   /* dim text / dividers */
+
+  /* Severity */
+  --sev-critical: #ef4444;
+  --sev-critical-bg: rgba(239,68,68,0.10);
+  --sev-high: #f97316;
+  --sev-high-bg: rgba(249,115,22,0.10);
+  --sev-medium: #f59e0b;
+  --sev-medium-bg: rgba(245,158,11,0.10);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="light"] {
+  --bg: #f0f4fc;
+  --s1: #ffffff;
+  --s2: #f6f9ff;
+  --s3: #eaf0fb;
+  --b0: rgba(15, 23, 42, 0.06);
+  --b1: rgba(15, 23, 42, 0.11);
+  --b2: rgba(15, 23, 42, 0.20);
+
+  --p: #0369a1;
+  --g: #047857;
+  --a: #b45309;
+  --o: #c2410c;
+  --v: #6d28d9;
+  --r: #b91c1c;
+  --pk: #a21caf;
+
+  --t: #0f172a;
+  --tm: #475569;
+  --td: #94a3b8;
+
+  --sev-critical: #dc2626;
+  --sev-critical-bg: rgba(220,38,38,0.08);
+  --sev-high: #ea580c;
+  --sev-high-bg: rgba(234,88,12,0.08);
+  --sev-medium: #d97706;
+  --sev-medium-bg: rgba(217,119,6,0.08);
 }
 
+/* ── Base ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--t);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--td);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tm);
+}
+
+/* ── Typography helpers ── */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Section label ── */
+.section-label {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Code blocks ── */
+pre, code {
+  font-family: var(--font-mono);
+}
+
+pre {
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* ── Severity badges ── */
+.badge-critical {
+  background: var(--sev-critical-bg);
+  color: var(--sev-critical);
+  border: 1px solid var(--sev-critical);
+}
+
+.badge-high {
+  background: var(--sev-high-bg);
+  color: var(--sev-high);
+  border: 1px solid var(--sev-high);
+}
+
+.badge-medium {
+  background: var(--sev-medium-bg);
+  color: var(--sev-medium);
+  border: 1px solid var(--sev-medium);
+}
+
+/* ── React Flow hero overrides ── */
+.hero-flow .react-flow__node {
+  cursor: default !important;
+}
+
+.hero-flow .react-flow__handle {
+  display: none !important;
+}
+
+.hero-flow .react-flow__edge-path {
+  stroke-width: 1.5;
+}
+
+/* ── Animated data packet ── */
+@keyframes flow-pulse {
+  0%   { stroke-dashoffset: 100; opacity: 0.6; }
+  100% { stroke-dashoffset: 0;   opacity: 1; }
+}
+
+/* ── Concept page mini-nav ── */
+.concept-mini-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--b1);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+/* ── Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
