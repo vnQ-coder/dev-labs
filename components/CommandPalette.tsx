@@ -123,8 +123,8 @@ export default function CommandPalette({ open, onClose }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -12 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed z-50 left-1/2 top-[18vh]"
-            style={{ transform: 'translateX(-50%)', width: '100%', maxWidth: 560, padding: '0 clamp(12px, 4vw, 16px)' }}
+            className="fixed z-50 left-1/2 top-1/2"
+            style={{ transform: 'translate(-50%, -50%)', width: '100%', maxWidth: 560, padding: '0 clamp(12px, 4vw, 16px)' }}
           >
             <div
               className="rounded-2xl overflow-hidden"
