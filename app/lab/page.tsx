@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Search } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import ConceptPage from '@/components/ConceptPage';
 import RealWorldView from '@/components/RealWorldView';
@@ -19,7 +20,6 @@ function LabContent() {
 
   const concept = conceptId ? CONCEPTS.find(c => c.id === conceptId) : null;
 
-  /* ⌘K / Ctrl+K global shortcut */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -41,18 +41,18 @@ function LabContent() {
   return (
     <>
       <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-        {/* Desktop sidebar */}
-        <div className="hidden md:flex flex-col w-72 flex-shrink-0 relative z-10">
+        {/* Desktop sidebar — visible on lg+ */}
+        <div className="hidden lg:flex flex-col flex-shrink-0 relative z-10" style={{ width: 260 }}>
           <Sidebar onOpenPalette={() => setPaletteOpen(true)} />
         </div>
 
-        {/* Mobile top bar */}
-        <MobileTopBar />
+        {/* Mobile/tablet top bar — visible below lg */}
+        <MobileTopBar onOpenPalette={() => setPaletteOpen(true)} />
 
-        {/* Main content */}
+        {/* Main content — offset for mobile top bar */}
         <div
-          className="flex-1 overflow-y-auto relative z-10 pt-14 md:pt-0"
-          style={{ background: 'transparent' }}
+          className="flex-1 overflow-y-auto relative z-10 pt-14 lg:pt-0"
+          style={{ background: 'transparent', minWidth: 0 }}
         >
           {renderMain()}
         </div>
@@ -64,58 +64,74 @@ function LabContent() {
 }
 
 const WELCOME_CONCEPTS = [
-  { label: '⚖️ Load Balancing',  id: 'loadbalancer', color: '#34d399' },
-  { label: '⚡ Caching',         id: 'caching',       color: '#34d399' },
-  { label: '📨 Kafka',           id: 'kafka',          color: '#16a34a' },
-  { label: '🐇 RabbitMQ',        id: 'rabbitmq',       color: '#f97316' },
-  { label: '⚙️ BullMQ',          id: 'bullmq',         color: '#ef4444' },
-  { label: '🔺 CAP Theorem',     id: 'cap',            color: '#a78bfa' },
-  { label: '🔌 Circuit Breaker', id: 'circuit',        color: '#f87171' },
-  { label: '🌐 CDN',             id: 'cdn',            color: '#34d399' },
+  { id: 'loadbalancer' }, { id: 'caching' }, { id: 'kafka' },
+  { id: 'rabbitmq' },     { id: 'cap' },     { id: 'circuit' },
+  { id: 'cdn' },          { id: 'sharding' },
 ];
 
 function WelcomeScreen({ onOpenPalette }: { onOpenPalette: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-8 text-center">
       <h2
-        className="text-3xl font-bold mb-2"
-        style={{ fontFamily: 'var(--font-display)', color: 'var(--t)' }}
+        className="text-2xl font-bold mb-2 tracking-tight"
+        style={{ color: 'var(--t)', letterSpacing: '-0.02em' }}
       >
         System Design Lab
       </h2>
-      <p className="text-sm max-w-sm mb-8" style={{ color: 'var(--tm)' }}>
-        15 concepts. Interactive diagrams. CTO-level interview answers.
+      <p className="text-sm max-w-xs mb-8" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>
+        {CONCEPTS.length} concepts. Interactive diagrams. CTO-level interview answers.
       </p>
 
-      {/* Search shortcut hint */}
       <button
         onClick={onOpenPalette}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm mb-10 transition-all hover:scale-105"
-        style={{ background: 'var(--s2)', border: '1px solid var(--b1)', color: 'var(--tm)', fontFamily: 'var(--font-display)' }}
+        className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm mb-10 transition-colors"
+        style={{
+          background: 'var(--s1)',
+          border: '1px solid var(--b1)',
+          color: 'var(--tm)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-border)')}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--b1)')}
       >
-        <span>🔍</span>
+        <Search size={14} strokeWidth={2} />
         <span>Search concepts…</span>
-        <kbd className="text-xs px-2 py-0.5 rounded ml-2" style={{ background: 'var(--s3)', fontFamily: 'var(--font-mono)', border: '1px solid var(--b1)' }}>
+        <kbd
+          className="text-xs px-2 py-0.5 rounded ml-1"
+          style={{
+            background: 'var(--s3)',
+            fontFamily: 'var(--font-mono)',
+            border: '1px solid var(--b0)',
+            color: 'var(--td)',
+          }}
+        >
           ⌘K
         </kbd>
       </button>
 
       <div className="flex flex-wrap justify-center gap-2 max-w-lg">
-        {WELCOME_CONCEPTS.map(c => (
-          <Link
-            key={c.id}
-            href={`/lab?concept=${c.id}`}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
-            style={{
-              border: `1px solid ${c.color}35`,
-              color: c.color,
-              background: `${c.color}0e`,
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            {c.label}
-          </Link>
-        ))}
+        {WELCOME_CONCEPTS.map(({ id }) => {
+          const c = CONCEPTS.find(x => x.id === id);
+          if (!c) return null;
+          const catColors: Record<string, string> = {
+            foundation: '#5ba3c9', performance: '#4db896', data: '#8b78d4',
+            async: '#c9a84c', reliability: '#c97070', messaging: '#c97a40', cloud: '#4db0c9',
+          };
+          const color = catColors[c.cat] ?? 'var(--accent)';
+          return (
+            <Link
+              key={id}
+              href={`/lab?concept=${id}`}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105"
+              style={{
+                border: `1px solid ${color}30`,
+                color: color,
+                background: `${color}0d`,
+              }}
+            >
+              {c.title}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
