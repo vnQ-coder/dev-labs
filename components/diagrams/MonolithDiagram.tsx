@@ -1,92 +1,58 @@
 'use client';
+import FlowDiagram, { mkNode, mkEdge, mkLabel, mkGroup } from './FlowDiagram';
+import type { Node, Edge } from '@xyflow/react';
 
-import { useTheme } from '@/hooks/useTheme';
+const NODES: Node[] = [
+  // LEFT — Monolith group
+  mkGroup('mono-group', 0, 0, 280, 340, {
+    label: '🏛️ MONOLITH',
+    sub: 'All services in one process',
+    color: '#f87171',
+  }),
 
-function useColors() {
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
-  return {
-    bg: dark ? '#04080f' : '#f0f6ff', card: dark ? '#0d1422' : '#ffffff',
-    border: dark ? 'rgba(56,189,248,.3)' : 'rgba(3,105,161,.2)',
-    p: dark ? '#38bdf8' : '#0369a1', g: dark ? '#34d399' : '#059669',
-    a: dark ? '#fbbf24' : '#d97706', r: dark ? '#f87171' : '#dc2626',
-    v: dark ? '#a78bfa' : '#7c3aed',
-    t: dark ? '#e2e8f0' : '#0f172a', tm: dark ? '#64748b' : '#475569',
-  };
-}
+  // Children inside the monolith group
+  mkNode('auth',   15,  50,  { icon: '🔒', title: 'Auth',   color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+  mkNode('orders', 145, 50,  { icon: '📦', title: 'Orders', color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+  mkNode('users',  15,  145, { icon: '👥', title: 'Users',  color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+  mkNode('email',  145, 145, { icon: '📧', title: 'Email',  color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+  mkNode('pay',    15,  240, { icon: '💳', title: 'Pay',    color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+  mkNode('search', 145, 240, { icon: '🔍', title: 'Search', color: '#f87171' }, { parentId: 'mono-group', extent: 'parent' }),
+
+  // Shared DB — outside the group
+  mkNode('shared-db', 75, 360, {
+    icon: '🗄️',
+    title: 'Shared DB',
+    sub: 'All coupled',
+    color: '#f87171',
+    badge: '💥 single point of failure',
+  }),
+
+  // VS label in the middle
+  mkLabel('vs', 310, 155, { label: 'VS', color: '#64748b' }),
+
+  // RIGHT — API Gateway
+  mkNode('gw', 360, 140, {
+    icon: '🚪',
+    title: 'API Gateway',
+    sub: 'Auth · Rate Limit · Route',
+    color: '#38bdf8',
+    badge: 'Single Entry Point',
+  }),
+
+  // Microservices
+  mkNode('ms-auth',   600, 10,  { icon: '🔒', title: 'Auth Svc',   sub: 'JWT / OAuth',    color: '#34d399', badge: 'own DB' }),
+  mkNode('ms-orders', 600, 115, { icon: '📦', title: 'Order Svc',  sub: 'CQRS pattern',   color: '#a78bfa', badge: 'own DB' }),
+  mkNode('ms-users',  600, 220, { icon: '👥', title: 'User Svc',   sub: 'Profile / prefs', color: '#38bdf8', badge: 'own DB' }),
+  mkNode('ms-pay',    600, 325, { icon: '💳', title: 'Pay Svc',    sub: 'Stripe / Adyen',  color: '#f59e0b', badge: 'own DB' }),
+];
+
+const EDGES: Edge[] = [
+  mkEdge('e-gw-auth',   'gw', 'ms-auth',   { color: '#34d399' }),
+  mkEdge('e-gw-orders', 'gw', 'ms-orders', { color: '#a78bfa' }),
+  mkEdge('e-gw-users',  'gw', 'ms-users',  { color: '#38bdf8' }),
+  mkEdge('e-gw-pay',    'gw', 'ms-pay',    { color: '#f59e0b' }),
+];
 
 export default function MonolithDiagram() {
-  const c = useColors();
-  const svcs = ['Auth', 'Orders', 'Users', 'Email', 'Pay', 'Search'];
-  const microColors = [c.p, c.g, c.a, c.v, c.r, '#fb923c'];
-
-  return (
-    <svg viewBox="0 0 540 360" width="100%" style={{ background: c.bg, borderRadius: 12 }}>
-      <style>{`
-        @keyframes explodePulse { 0%,100%{opacity:0.4;r:18} 50%{opacity:0.9;r:22} }
-        @keyframes mpk { 0%{opacity:0;offset-distance:0%}20%{opacity:1}80%{opacity:1}100%{opacity:0;offset-distance:100%} }
-        .expl { animation: explodePulse 1.5s infinite; }
-        .mpk1{animation:mpk 1.4s 0.0s infinite;offset-path:path('M370,40 L370,80')}
-        .mpk2{animation:mpk 1.4s 0.35s infinite;offset-path:path('M448,80 L448,120')}
-        .mpk3{animation:mpk 1.4s 0.7s infinite;offset-path:path('M448,180 L448,220')}
-      `}</style>
-
-      {/* Left — Monolith */}
-      <text x="130" y="22" textAnchor="middle" fill={c.r} fontSize="11" fontWeight="700">🏛️ MONOLITH</text>
-      <rect x="20" y="30" width="220" height="240" rx="14" fill={c.card} stroke={c.r} strokeWidth="2" strokeDasharray="6 3" />
-      {svcs.map((s, i) => {
-        const col = i % 3;
-        const row = Math.floor(i / 3);
-        return (
-          <g key={s}>
-            <rect x={30 + col * 72} y={48 + row * 70} width="64" height="52" rx="8" fill={c.bg} stroke={c.border} strokeWidth="1" />
-            <text x={62 + col * 72} y={78 + row * 70} textAnchor="middle" fill={c.t} fontSize="9">{s}</text>
-          </g>
-        );
-      })}
-      {/* Shared DB */}
-      <rect x="60" y="200" width="140" height="36" rx="8" fill={c.card} stroke={c.border} strokeWidth="1.5" />
-      <text x="130" y="222" textAnchor="middle" fill={c.tm} fontSize="9">🗄️ Shared Database</text>
-      {/* Explosion */}
-      <circle className="expl" cx="130" cy="155" r="18" fill={c.r} />
-      <text x="130" y="160" textAnchor="middle" fill="#fff" fontSize="14">💥</text>
-
-      {/* VS */}
-      <text x="270" y="170" textAnchor="middle" fill={c.tm} fontSize="12" fontWeight="800">VS</text>
-
-      {/* Right — Microservices */}
-      <text x="410" y="22" textAnchor="middle" fill={c.g} fontSize="11" fontWeight="700">🏘️ MICROSERVICES</text>
-
-      {/* Gateway */}
-      <rect x="340" y="30" width="140" height="36" rx="10" fill={c.card} stroke={c.p} strokeWidth="1.5" />
-      <text x="410" y="53" textAnchor="middle" fill={c.p} fontSize="9">🚪 API Gateway</text>
-
-      {/* Service boxes */}
-      {svcs.map((s, i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const x = 330 + col * 90;
-        const y = 82 + row * 68;
-        const col2 = microColors[i];
-        return (
-          <g key={s}>
-            <rect x={x} y={y} width="78" height="54" rx="8" fill={c.card} stroke={col2} strokeWidth="1.5" />
-            <text x={x + 39} y={y + 22} textAnchor="middle" fill={c.t} fontSize="9" fontWeight="600">{s}</text>
-            <rect x={x + 10} y={y + 28} width="58" height="14" rx="4" fill={col2} fillOpacity="0.2" />
-            <text x={x + 39} y={y + 38} textAnchor="middle" fill={col2} fontSize="7">own DB</text>
-          </g>
-        );
-      })}
-
-      {/* Animated packets */}
-      <circle className="mpk1" r="5" fill={c.p} />
-      <circle className="mpk2" r="5" fill={c.g} />
-      <circle className="mpk3" r="5" fill={c.a} />
-
-      {/* Gateway → svc lines */}
-      {[375, 420, 465].map((x, i) => (
-        <line key={i} x1={x} y1="66" x2={i < 2 ? 369 + i * 90 : 420} y2="82" stroke={microColors[i]} strokeWidth="1" strokeDasharray="3 2" opacity="0.5" />
-      ))}
-    </svg>
-  );
+  return <FlowDiagram nodes={NODES} edges={EDGES} />;
 }

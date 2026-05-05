@@ -1,91 +1,66 @@
 'use client';
+import { useState, useEffect, useMemo } from 'react';
+import FlowDiagram, { mkNode, mkEdge, mkLabel } from './FlowDiagram';
+import type { Node, Edge } from '@xyflow/react';
 
-import { useTheme } from '@/hooks/useTheme';
-import { useState, useEffect } from 'react';
-
-function useColors() {
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
-  return {
-    bg: dark ? '#04080f' : '#f0f6ff', card: dark ? '#0d1422' : '#ffffff',
-    border: dark ? 'rgba(248,113,113,.3)' : 'rgba(185,28,28,.2)',
-    p: dark ? '#38bdf8' : '#0369a1', g: dark ? '#34d399' : '#059669',
-    a: dark ? '#fbbf24' : '#d97706', r: dark ? '#f87171' : '#dc2626',
-    t: dark ? '#e2e8f0' : '#0f172a', tm: dark ? '#64748b' : '#475569',
-  };
-}
-
-type State = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+type CBState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
 export default function CircuitBreakerDiagram() {
-  const c = useColors();
-  const [state, setState] = useState<State>('CLOSED');
+  const [state, setState] = useState<CBState>('CLOSED');
 
   useEffect(() => {
-    const cycle: State[] = ['CLOSED', 'OPEN', 'HALF_OPEN'];
+    const cycle: CBState[] = ['CLOSED', 'OPEN', 'HALF_OPEN'];
     let i = 0;
-    const id = setInterval(() => {
-      i = (i + 1) % cycle.length;
-      setState(cycle[i]);
-    }, 2500);
+    const id = setInterval(() => { i = (i + 1) % 3; setState(cycle[i]); }, 2500);
     return () => clearInterval(id);
   }, []);
 
-  const stateColor = state === 'CLOSED' ? c.g : state === 'OPEN' ? c.r : c.a;
-  const stateIcon = state === 'CLOSED' ? '🟢' : state === 'OPEN' ? '🔴' : '🟡';
+  const stateColor = state === 'CLOSED' ? '#34d399' : state === 'OPEN' ? '#f87171' : '#f59e0b';
+  const stateIcon  = state === 'CLOSED' ? '🟢' : state === 'OPEN' ? '🔴' : '🟡';
+  const stateDesc  = state === 'CLOSED'
+    ? 'Normal flow — requests pass through. Counting failures.'
+    : state === 'OPEN'
+    ? 'Tripped! All requests fail fast. 30s timer running.'
+    : 'Testing recovery — 1 probe request allowed through.';
 
-  return (
-    <svg viewBox="0 0 520 320" width="100%" style={{ background: c.bg, borderRadius: 12 }}>
-      <style>{`
-        @keyframes cbPk { 0%{opacity:0;offset-distance:0%}20%{opacity:1}80%{opacity:1}100%{opacity:0;offset-distance:100%} }
-        .cb1 { animation: cbPk 1.5s 0s infinite; offset-path: path('M110,120 L200,120'); }
-        .cb2 { animation: cbPk 1.5s 0.5s infinite; offset-path: path('M310,120 L400,120'); }
-      `}</style>
+  const nodes: Node[] = useMemo(() => [
+    mkNode('svc-a', 0, 140, { icon: '⚙️', title: 'Service A', sub: 'Caller', color: '#38bdf8' }),
+    mkNode('breaker', 230, 100, {
+      icon: stateIcon,
+      title: 'Circuit Breaker',
+      sub: state,
+      color: stateColor,
+      badge: state === 'CLOSED' ? 'Failures: 2/5' : state === 'OPEN' ? 'Timer: 28s remaining' : 'Probe: 1 request',
+      pills: [{ label: stateDesc, color: stateColor }],
+    }),
+    mkNode('svc-b', 530, 140, {
+      icon: state === 'OPEN' ? '🔥' : '🟢',
+      title: 'Service B',
+      sub: state === 'OPEN' ? 'Unavailable' : 'Downstream',
+      color: state === 'OPEN' ? '#f87171' : '#34d399',
+      dim: state === 'OPEN',
+    }),
+    mkNode('fallback', 530, 310, {
+      icon: '⚡',
+      title: 'Fallback',
+      sub: 'Cached / default response',
+      color: '#f59e0b',
+      badge: state === 'OPEN' ? '← Active now' : 'Standby',
+      dim: state !== 'OPEN',
+    }),
+    mkLabel('lbl', 170, 300, {
+      label: state === 'CLOSED' ? '✅ CLOSED — Normal operation'
+           : state === 'OPEN'   ? '🔴 OPEN — Fail fast, protect Service B'
+           :                      '🟡 HALF-OPEN — Recovery probe',
+      color: stateColor,
+    }),
+  ], [state, stateColor, stateIcon, stateDesc]);
 
-      {/* Service A */}
-      <rect x="20" y="96" width="90" height="48" rx="10" fill={c.card} stroke={c.p} strokeWidth="1.5" />
-      <text x="65" y="116" textAnchor="middle" fill={c.t} fontSize="12">⚙️</text>
-      <text x="65" y="132" textAnchor="middle" fill={c.p} fontSize="9" fontWeight="700">Service A</text>
+  const edges: Edge[] = useMemo(() => [
+    mkEdge('e-a-br', 'svc-a', 'breaker', { color: '#38bdf8' }),
+    ...(state !== 'OPEN' ? [mkEdge('e-br-b', 'breaker', 'svc-b', { color: stateColor, dashed: state === 'HALF_OPEN' })] : []),
+    ...(state === 'OPEN'  ? [mkEdge('e-br-fb', 'breaker', 'fallback', { color: '#f59e0b' })] : []),
+  ], [state, stateColor]);
 
-      {/* Arrow A → breaker */}
-      <line x1="110" y1="120" x2="200" y2="120" stroke={c.p} strokeWidth="1.5" />
-      <circle className="cb1" r="5" fill={c.p} />
-
-      {/* Circuit Breaker */}
-      <rect x="200" y="80" width="110" height="80" rx="12" fill={c.card} stroke={stateColor} strokeWidth="2.5" />
-      <text x="255" y="104" textAnchor="middle" fill={c.t} fontSize="11">{stateIcon} Circuit</text>
-      <text x="255" y="119" textAnchor="middle" fill={stateColor} fontSize="10" fontWeight="800">{state}</text>
-      {/* Switch symbol */}
-      <line x1="225" y1="138" x2="240" y2="138" stroke={stateColor} strokeWidth="2" />
-      {state === 'CLOSED' && <line x1="240" y1="138" x2="285" y2="138" stroke={stateColor} strokeWidth="2" />}
-      {state === 'OPEN' && <line x1="240" y1="138" x2="272" y2="118" stroke={stateColor} strokeWidth="2" />}
-      {state === 'HALF_OPEN' && <line x1="240" y1="138" x2="272" y2="128" stroke={stateColor} strokeWidth="2" strokeDasharray="4 2" />}
-      <line x1="285" y1="138" x2="310" y2="138" stroke={stateColor} strokeWidth="2" />
-
-      {/* Arrow breaker → B (only if CLOSED or HALF_OPEN) */}
-      <line x1="310" y1="120" x2="400" y2="120" stroke={state === 'OPEN' ? c.r : stateColor} strokeWidth="1.5"
-        strokeDasharray={state === 'OPEN' ? '5 4' : '0'} opacity={state === 'OPEN' ? 0.4 : 1} />
-      {state !== 'OPEN' && <circle className="cb2" r="5" fill={stateColor} />}
-
-      {/* Service B */}
-      <rect x="400" y="96" width="100" height="48" rx="10" fill={c.card} stroke={state === 'OPEN' ? c.r : c.g} strokeWidth="1.5" />
-      <text x="450" y="116" textAnchor="middle" fill={c.t} fontSize="12">{state === 'OPEN' ? '🔥' : '🟢'}</text>
-      <text x="450" y="132" textAnchor="middle" fill={state === 'OPEN' ? c.r : c.g} fontSize="9" fontWeight="700">Service B</text>
-
-      {/* Fallback */}
-      <rect x="190" y="205" width="130" height="50" rx="10" fill={c.card} stroke={c.a} strokeWidth="1.5" />
-      <text x="255" y="226" textAnchor="middle" fill={c.a} fontSize="10">⚡ Fallback</text>
-      <text x="255" y="242" textAnchor="middle" fill={c.tm} fontSize="8">cached/default response</text>
-      {state === 'OPEN' && (
-        <line x1="255" y1="160" x2="255" y2="205" stroke={c.a} strokeWidth="1.5" strokeDasharray="4 2" />
-      )}
-
-      {/* State descriptions */}
-      <rect x="20" y="270" width="480" height="38" rx="8" fill={c.card} />
-      <text x="260" y="286" textAnchor="middle" fill={stateColor} fontSize="9" fontWeight="700">{state}:</text>
-      {state === 'CLOSED' && <text x="260" y="300" textAnchor="middle" fill={c.tm} fontSize="8">Normal — all requests pass through. Tracking failure count.</text>}
-      {state === 'OPEN' && <text x="260" y="300" textAnchor="middle" fill={c.tm} fontSize="8">Tripped — all requests fail fast. Returning fallback immediately. 30s timer running.</text>}
-      {state === 'HALF_OPEN' && <text x="260" y="300" textAnchor="middle" fill={c.tm} fontSize="8">Testing recovery — 1 trial request allowed. Success → CLOSED, Failure → OPEN.</text>}
-    </svg>
-  );
+  return <FlowDiagram nodes={nodes} edges={edges} />;
 }

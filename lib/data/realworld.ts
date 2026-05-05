@@ -1,6 +1,7 @@
 import { RealWorldSystem } from '../types';
+import { REALWORLD_AWS } from './realworld-aws';
 
-export const REALWORLD: RealWorldSystem[] = [
+const REALWORLD_BASE: RealWorldSystem[] = [
   {
     id: 'netflix',
     icon: '🎬',
@@ -1097,3 +1098,5 @@ export const REALWORLD: RealWorldSystem[] = [
       '500 hours of video per minute is a distributed systems problem, not just a storage problem. The insight is extreme parallelism: split by quality tier, split by time segment within each tier, run Content ID, captions, and thumbnails as independent parallel workers. Each step is a Pub/Sub consumer — new processing types (new codec, new ML model) are added without touching upload or CDN code. The pipeline is a series of independent, parallelizable transformations over an immutable input.',
   },
 ];
+
+export const REALWORLD: RealWorldSystem[] = [...REALWORLD_BASE, ...REALWORLD_AWS];

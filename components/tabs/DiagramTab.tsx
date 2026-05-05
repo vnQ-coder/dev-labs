@@ -15,6 +15,21 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   ratelimit: lazy(() => import('@/components/diagrams/RateLimitDiagram')),
   cap: lazy(() => import('@/components/diagrams/CAPDiagram')),
   circuit: lazy(() => import('@/components/diagrams/CircuitBreakerDiagram')),
+  vpc: lazy(() => import('@/components/diagrams/VPCDiagram')),
+  subnets: lazy(() => import('@/components/diagrams/VPCDiagram')),
+  'security-groups': lazy(() => import('@/components/diagrams/VPCDiagram')),
+  'nat-gateway': lazy(() => import('@/components/diagrams/VPCDiagram')),
+  'ports-protocols': lazy(() => import('@/components/diagrams/VPCDiagram')),
+  dns: lazy(() => import('@/components/diagrams/DNSDiagram')),
+  route53: lazy(() => import('@/components/diagrams/DNSDiagram')),
+  cloudflare: lazy(() => import('@/components/diagrams/DNSDiagram')),
+  cloudfront: lazy(() => import('@/components/diagrams/DNSDiagram')),
+  ec2: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
+  containers: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
+  s3: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
+  rds: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
+  iam: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
+  lambda: lazy(() => import('@/components/diagrams/ServerlessDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {

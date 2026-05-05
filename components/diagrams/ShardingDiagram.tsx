@@ -1,72 +1,73 @@
 'use client';
+import FlowDiagram, { mkNode, mkEdge, mkLabel } from './FlowDiagram';
+import type { Node, Edge } from '@xyflow/react';
 
-import { useTheme } from '@/hooks/useTheme';
+const nodes: Node[] = [
+  mkNode('app', 290, 0, {
+    icon: '⚙️',
+    title: 'App Server',
+    sub: 'Writes & reads',
+    color: '#38bdf8',
+    badge: 'hash(userId) % 4',
+  }),
+  mkNode('router', 290, 140, {
+    icon: '🔀',
+    title: 'Shard Router',
+    sub: 'Consistent hashing',
+    color: '#a78bfa',
+    badge: 'Routes to correct shard',
+    pills: [
+      { label: 'Key: userId', color: '#a78bfa' },
+      { label: 'Algorithm: MurmurHash3', color: '#64748b' },
+    ],
+  }),
+  mkNode('sh0', 0, 310, {
+    icon: '🗄️',
+    title: 'Shard 0',
+    sub: 'userId % 4 = 0',
+    color: '#38bdf8',
+    badge: '25% of data',
+    pills: [{ label: '~2.5M rows', color: '#64748b' }],
+  }),
+  mkNode('sh1', 200, 310, {
+    icon: '🗄️',
+    title: 'Shard 1',
+    sub: 'userId % 4 = 1',
+    color: '#34d399',
+    badge: '25% of data',
+    pills: [{ label: '~2.5M rows', color: '#64748b' }],
+  }),
+  mkNode('sh2', 400, 310, {
+    icon: '🗄️',
+    title: 'Shard 2',
+    sub: 'userId % 4 = 2',
+    color: '#f59e0b',
+    badge: '25% of data',
+    pills: [{ label: '~2.5M rows', color: '#64748b' }],
+  }),
+  mkNode('sh3', 600, 310, {
+    icon: '🗄️',
+    title: 'Shard 3',
+    sub: 'userId % 4 = 3',
+    color: '#a78bfa',
+    badge: '25% of data',
+    pills: [{ label: '~2.5M rows', color: '#64748b' }],
+  }),
+  mkLabel('lbl', 180, 480, {
+    label: 'Cross-shard queries are expensive — design shard key carefully',
+    icon: '⚠️',
+    color: '#f59e0b',
+  }),
+];
 
-function useColors() {
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
-  return {
-    bg: dark ? '#04080f' : '#f0f6ff', card: dark ? '#0d1422' : '#ffffff',
-    border: dark ? 'rgba(56,189,248,.3)' : 'rgba(3,105,161,.2)',
-    p: dark ? '#38bdf8' : '#0369a1', g: dark ? '#34d399' : '#059669',
-    a: dark ? '#fbbf24' : '#d97706', v: dark ? '#a78bfa' : '#7c3aed',
-    o: dark ? '#fb923c' : '#ea580c',
-    t: dark ? '#e2e8f0' : '#0f172a', tm: dark ? '#64748b' : '#475569',
-  };
-}
+const edges: Edge[] = [
+  mkEdge('e-app-rt', 'app', 'router', { color: '#38bdf8' }),
+  mkEdge('e-rt-sh0', 'router', 'sh0', { color: '#38bdf8' }),
+  mkEdge('e-rt-sh1', 'router', 'sh1', { color: '#34d399' }),
+  mkEdge('e-rt-sh2', 'router', 'sh2', { color: '#f59e0b' }),
+  mkEdge('e-rt-sh3', 'router', 'sh3', { color: '#a78bfa' }),
+];
 
 export default function ShardingDiagram() {
-  const c = useColors();
-  const shards = [
-    { label: 'Shard 0', range: 'user_id % 4 = 0', color: c.p, x: 60 },
-    { label: 'Shard 1', range: 'user_id % 4 = 1', color: c.g, x: 180 },
-    { label: 'Shard 2', range: 'user_id % 4 = 2', color: c.a, x: 300 },
-    { label: 'Shard 3', range: 'user_id % 4 = 3', color: c.v, x: 420 },
-  ];
-  return (
-    <svg viewBox="0 0 520 320" width="100%" style={{ background: c.bg, borderRadius: 12 }}>
-      <style>{`
-        @keyframes shPk { 0%{opacity:0;offset-distance:0%}20%{opacity:1}80%{opacity:1}100%{opacity:0;offset-distance:100%} }
-        .sh0{animation:shPk 1.8s 0.0s infinite;offset-path:path('M260,100 L100,185')}
-        .sh1{animation:shPk 1.8s 0.45s infinite;offset-path:path('M260,100 L212,185')}
-        .sh2{animation:shPk 1.8s 0.9s infinite;offset-path:path('M260,100 L324,185')}
-        .sh3{animation:shPk 1.8s 1.35s infinite;offset-path:path('M260,100 L436,185')}
-      `}</style>
-
-      {/* App box */}
-      <rect x="180" y="20" width="160" height="70" rx="14" fill={c.card} stroke={c.p} strokeWidth="2" />
-      <text x="260" y="48" textAnchor="middle" fill={c.t} fontSize="14">⚙️ App Server</text>
-      <text x="260" y="65" textAnchor="middle" fill={c.p} fontSize="9" fontFamily="monospace">hash(userId) % 4</text>
-      <text x="260" y="80" textAnchor="middle" fill={c.tm} fontSize="8">→ selects shard</text>
-
-      {/* Lines to shards */}
-      {shards.map((s, i) => (
-        <line key={i} x1="260" y1="90" x2={s.x + 52} y2="185" stroke={s.color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.6" />
-      ))}
-
-      {/* Animated packets */}
-      <circle className="sh0" r="6" fill={c.p} />
-      <circle className="sh1" r="6" fill={c.g} />
-      <circle className="sh2" r="6" fill={c.a} />
-      <circle className="sh3" r="6" fill={c.v} />
-
-      {/* Shard boxes */}
-      {shards.map((s, i) => (
-        <g key={i}>
-          <rect x={s.x} y="185" width="104" height="90" rx="12" fill={c.card} stroke={s.color} strokeWidth="2" />
-          <text x={s.x + 52} y="210" textAnchor="middle" fill={c.t} fontSize="13">🗄️</text>
-          <text x={s.x + 52} y="228" textAnchor="middle" fill={s.color} fontSize="9" fontWeight="700">{s.label}</text>
-          <text x={s.x + 52} y="244" textAnchor="middle" fill={c.tm} fontSize="7">{s.range}</text>
-          {/* Mini rows */}
-          {[0, 1, 2].map(r => (
-            <rect key={r} x={s.x + 10} y={255 + r * 6} width="84" height="4" rx="2" fill={s.color} opacity="0.3" />
-          ))}
-        </g>
-      ))}
-
-      {/* Legend */}
-      <rect x="120" y="295" width="280" height="18" rx="6" fill={c.card} />
-      <text x="260" y="308" textAnchor="middle" fill={c.tm} fontSize="8">Even distribution • Each shard handles 25% of data</text>
-    </svg>
-  );
+  return <FlowDiagram nodes={nodes} edges={edges} />;
 }
