@@ -6,7 +6,8 @@ import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Lightbulb, CheckCircle2, XCircle,
-  Copy, Check, ChevronDown,
+  Copy, Check, ChevronDown, ChevronUp, AlertTriangle, ArrowRight,
+  Code2, Zap,
 } from 'lucide-react';
 import { CONCEPTS } from '@/lib/data/concepts';
 import { CATEGORIES } from '@/lib/data/categories';
@@ -15,8 +16,6 @@ import ConceptIcon from './icons/ConceptIcon';
 import type { Concept, FailureMode } from '@/lib/types';
 
 const ConceptDiagram = dynamic(() => import('./ConceptDiagram'), { ssr: false });
-
-/* ── helpers ── */
 
 function getCatColor(cat: string): string {
   return CATEGORIES.find(c => c.id === cat)?.color ?? 'var(--accent)';
@@ -36,23 +35,7 @@ const SECTIONS = [
 
 function SectionLabel({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <div className="section-label mb-4" style={{ color }}>
-      {children}
-    </div>
-  );
-}
-
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      className="rounded-xl p-5"
-      style={{
-        background: 'var(--s1)',
-        border: '1px solid var(--b0)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        ...style,
-      }}
-    >
+    <div className="section-label mb-3" style={{ color }}>
       {children}
     </div>
   );
@@ -93,28 +76,70 @@ function MiniNav({ active, color }: { active: string; color: string }) {
 
 function OverviewSection({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
+  const catLabel = CATEGORIES.find(c => c.id === concept.cat)?.label ?? concept.cat;
+
   return (
-    <section id="section-overview" className="mb-8">
-      <SectionLabel color={color}>Overview</SectionLabel>
-      <Card>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--t)' }}>
+    <section id="section-overview" className="mb-10">
+      {/* TL;DR hero */}
+      <div
+        className="rounded-2xl p-5 mb-4"
+        style={{
+          background: `linear-gradient(135deg, ${color}0d 0%, var(--s1) 55%)`,
+          border: `1px solid ${color}22`,
+        }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Zap size={13} strokeWidth={2.5} color={color} />
+          <span className="section-label" style={{ color }}>TL;DR</span>
+        </div>
+        <p className="text-sm leading-relaxed font-medium" style={{ color: 'var(--t)', lineHeight: 1.75 }}>
           {concept.overview ?? concept.te.def}
         </p>
-        {concept.te.types.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4 pt-4" style={{ borderTop: '1px solid var(--b0)' }}>
+        {/* Quick-fact chips */}
+        <div className="flex flex-wrap gap-2 mt-4 pt-4" style={{ borderTop: `1px solid ${color}15` }}>
+          <span
+            className="text-xs px-2.5 py-1 rounded-full font-medium"
+            style={{ background: `${color}12`, color, border: `1px solid ${color}22` }}
+          >
+            {catLabel}
+          </span>
+          {concept.te.types.length > 0 && (
+            <span
+              className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={{ background: 'var(--s2)', color: 'var(--tm)', border: '1px solid var(--b0)' }}
+            >
+              {concept.te.types.length} patterns
+            </span>
+          )}
+          {concept.failures && concept.failures.length > 0 && (
+            <span
+              className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={{ background: 'rgba(201,112,112,0.08)', color: '#c97070', border: '1px solid rgba(201,112,112,0.20)' }}
+            >
+              {concept.failures.length} failure modes
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Patterns / types */}
+      {concept.te.types.length > 0 && (
+        <>
+          <SectionLabel color={color}>Patterns & Variants</SectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {concept.te.types.map(t => (
               <div
                 key={t.n}
-                className="px-3 py-2 rounded-lg text-xs"
-                style={{ background: 'var(--s2)', border: '1px solid var(--b0)' }}
+                className="rounded-xl px-4 py-3"
+                style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}
               >
-                <span className="font-semibold" style={{ color }}>{t.n}</span>
-                <span className="block mt-0.5" style={{ color: 'var(--tm)' }}>{t.d}</span>
+                <div className="text-xs font-bold mb-1" style={{ color }}>{t.n}</div>
+                <div className="text-xs leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>{t.d}</div>
               </div>
             ))}
           </div>
-        )}
-      </Card>
+        </>
+      )}
     </section>
   );
 }
@@ -124,63 +149,106 @@ function OverviewSection({ concept }: { concept: Concept }) {
 function AnalogySection({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
   return (
-    <section id="section-analogy" className="mb-8">
-      <SectionLabel color={color}>The Analogy</SectionLabel>
-      <Card>
-        <div className="flex items-start gap-4">
+    <section id="section-analogy" className="mb-10">
+      <SectionLabel color={color}>The Mental Model</SectionLabel>
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ border: `1px solid ${color}20` }}
+      >
+        {/* Header strip */}
+        <div
+          className="px-5 py-3 flex items-center gap-3"
+          style={{ background: `${color}0c`, borderBottom: `1px solid ${color}18` }}
+        >
           <div
             className="flex-shrink-0 flex items-center justify-center rounded-xl"
-            style={{
-              width: 48, height: 48,
-              background: `${color}12`,
-              border: `1px solid ${color}25`,
-            }}
+            style={{ width: 36, height: 36, background: `${color}18`, border: `1px solid ${color}28` }}
           >
-            <ConceptIcon conceptId={concept.id} size={22} color={color} />
+            <ConceptIcon conceptId={concept.id} size={18} color={color} />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--t)' }}>
-              {concept.a.t}
-            </h3>
-            {concept.a.tx.split('\n\n').map((para: string, i: number) => (
-              <p key={i} className="text-sm leading-relaxed mb-2" style={{ color: 'var(--tm)' }}>
-                {para}
-              </p>
-            ))}
+          <div>
+            <div className="text-sm font-bold" style={{ color: 'var(--t)' }}>{concept.a.t}</div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--td)' }}>Analogy</div>
           </div>
         </div>
+
+        {/* Body paragraphs */}
+        <div className="px-5 py-4 space-y-3" style={{ background: 'var(--s1)' }}>
+          {concept.a.tx.split('\n\n').map((para: string, i: number) => (
+            <p key={i} className="text-sm leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.75 }}>
+              {para}
+            </p>
+          ))}
+        </div>
+
+        {/* Key insight footer */}
         <div
-          className="mt-4 rounded-xl p-4 flex gap-3"
-          style={{ background: `${color}08`, border: `1px solid ${color}20` }}
+          className="px-5 py-4 flex gap-3"
+          style={{ background: `${color}06`, borderTop: `1px solid ${color}18` }}
         >
-          <Lightbulb size={16} strokeWidth={2} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--t)' }}>
-            <span className="font-semibold" style={{ color }}>Key insight: </span>
-            {concept.a.s}
-          </p>
+          <Lightbulb size={15} strokeWidth={2} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div className="text-xs font-semibold mb-1" style={{ color }}>Key Insight</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--t)', lineHeight: 1.7 }}>
+              {concept.a.s}
+            </p>
+          </div>
         </div>
-      </Card>
+      </div>
     </section>
   );
 }
 
-/* ── How It Works ── */
+/* ── How It Works — numbered step timeline ── */
 
 function HowItWorksSection({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
+  const text = concept.howItWorks ?? `${concept.te.when}\n\n${concept.te.trade}`;
+
+  // Split on double-newline first; fall back to splitting on sentence boundaries
+  let steps = text.split('\n\n').filter(s => s.trim().length > 10);
+  if (steps.length <= 1) {
+    steps = text.match(/[^.!?]+[.!?]+/g)?.reduce<string[]>((acc, sentence) => {
+      const last = acc[acc.length - 1];
+      if (!last || last.length > 180) { acc.push(sentence.trim()); }
+      else { acc[acc.length - 1] = last + ' ' + sentence.trim(); }
+      return acc;
+    }, []) ?? [text];
+  }
+
   return (
-    <section id="section-how" className="mb-8">
+    <section id="section-how" className="mb-10">
       <SectionLabel color={color}>How It Works</SectionLabel>
-      <Card>
-        {concept.howItWorks ? (
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--tm)' }}>{concept.howItWorks}</p>
-        ) : (
-          <>
-            <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--tm)' }}>{concept.te.when}</p>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--tm)' }}>{concept.te.trade}</p>
-          </>
-        )}
-      </Card>
+      <div>
+        {steps.map((step, i) => (
+          <div key={i} className="flex gap-4">
+            {/* Step indicator + connector */}
+            <div className="flex flex-col items-center flex-shrink-0" style={{ paddingTop: 2 }}>
+              <div
+                className="flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
+                style={{
+                  width: 26, height: 26,
+                  background: `${color}12`,
+                  border: `1.5px solid ${color}30`,
+                  color,
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {i + 1}
+              </div>
+              {i < steps.length - 1 && (
+                <div className="w-px flex-1 mt-1" style={{ background: `${color}18`, minHeight: 12 }} />
+              )}
+            </div>
+            {/* Text */}
+            <div className="pb-5 flex-1 min-w-0 pt-0.5">
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.75 }}>
+                {step.trim()}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -192,31 +260,30 @@ function ComponentsSection({ concept }: { concept: Concept }) {
   const items = concept.components;
   if (!items || items.length === 0) return null;
   return (
-    <section id="section-components" className="mb-8">
-      <SectionLabel color={color}>Components</SectionLabel>
+    <section id="section-components" className="mb-10">
+      <SectionLabel color={color}>Key Components</SectionLabel>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {items.map(comp => (
-          <div
+        {items.map((comp, i) => (
+          <motion.div
             key={comp.name}
-            className="rounded-xl p-4 transition-all"
-            style={{
-              background: 'var(--s1)',
-              border: '1px solid var(--b0)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04, duration: 0.2 }}
+            className="rounded-xl p-4"
+            style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}
           >
             <div className="flex items-center gap-2.5 mb-2">
               <div
                 className="flex items-center justify-center rounded-lg flex-shrink-0"
-                style={{ width: 28, height: 28, background: `${color}10`, border: `1px solid ${color}25` }}
+                style={{ width: 26, height: 26, background: `${color}10`, border: `1px solid ${color}20` }}
               >
-                <ConceptIcon conceptId={concept.id} size={13} color={color} />
+                <ConceptIcon conceptId={concept.id} size={12} color={color} />
               </div>
-              <span className="text-sm font-semibold" style={{ color: 'var(--t)' }}>{comp.name}</span>
+              <span className="text-xs font-bold" style={{ color: 'var(--t)' }}>{comp.name}</span>
             </div>
-            <p className="text-xs font-medium mb-1" style={{ color }}>{comp.role}</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)' }}>{comp.detail}</p>
-          </div>
+            <div className="text-xs font-semibold mb-1.5" style={{ color }}>{comp.role}</div>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>{comp.detail}</p>
+          </motion.div>
         ))}
       </div>
     </section>
@@ -228,7 +295,7 @@ function ComponentsSection({ concept }: { concept: Concept }) {
 function DiagramSection({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
   return (
-    <section id="section-diagram" className="mb-8">
+    <section id="section-diagram" className="mb-10">
       <SectionLabel color={color}>Architecture Diagram</SectionLabel>
       <ConceptDiagram conceptId={concept.id} color={color} />
     </section>
@@ -242,7 +309,7 @@ function DecisionSection({ concept }: { concept: Concept }) {
   const d = concept.decision;
   if (!d) return null;
   return (
-    <section id="section-decide" className="mb-8">
+    <section id="section-decide" className="mb-10">
       <SectionLabel color={color}>Decision Guide</SectionLabel>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
         <div
@@ -306,50 +373,96 @@ function DecisionSection({ concept }: { concept: Concept }) {
   );
 }
 
-/* ── Failures ── */
+/* ── Failures — accordion ── */
+
+const SEV_CONFIG = {
+  critical: { bg: 'rgba(201,112,112,0.08)', border: 'rgba(201,112,112,0.28)', color: '#c97070', label: 'CRITICAL' },
+  high:     { bg: 'rgba(201,164,76,0.08)',  border: 'rgba(201,164,76,0.28)',  color: '#c9a84c', label: 'HIGH'     },
+  medium:   { bg: 'rgba(91,163,201,0.08)',  border: 'rgba(91,163,201,0.28)', color: '#5ba3c9', label: 'MEDIUM'   },
+};
+
+function FailureCard({
+  f, isOpen, onToggle,
+}: { f: FailureMode; isOpen: boolean; onToggle: () => void }) {
+  const sev = SEV_CONFIG[f.severity] ?? SEV_CONFIG.medium;
+  return (
+    <div
+      className="rounded-xl overflow-hidden transition-all"
+      style={{ border: `1px solid ${isOpen ? sev.border : 'var(--b0)'}` }}
+    >
+      {/* Row — always visible */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+        style={{ background: isOpen ? sev.bg : 'var(--s1)' }}
+      >
+        <AlertTriangle size={14} strokeWidth={2} color={sev.color} style={{ flexShrink: 0 }} />
+        <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--t)' }}>{f.name}</span>
+        <span
+          className="section-label px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ background: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
+        >
+          {sev.label}
+        </span>
+        <span style={{ color: 'var(--td)', flexShrink: 0 }}>
+          {isOpen ? <ChevronUp size={14} strokeWidth={2} /> : <ChevronDown size={14} strokeWidth={2} />}
+        </span>
+      </button>
+
+      {/* Expanded body */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              className="px-4 pb-4 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3"
+              style={{ background: 'var(--s2)', borderTop: '1px solid var(--b0)' }}
+            >
+              <div className="rounded-lg p-3" style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}>
+                <div className="section-label mb-1.5" style={{ color: 'var(--accent)' }}>Cause</div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>{f.cause}</p>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}>
+                <div className="section-label mb-1.5" style={{ color: '#c97070' }}>Symptom</div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>{f.symptom}</p>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: 'rgba(77,184,150,0.06)', border: '1px solid rgba(77,184,150,0.20)' }}>
+                <div className="section-label mb-1.5" style={{ color: '#4db896' }}>Fix</div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>{f.fix}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function FailuresSection({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
   const failures = concept.failures;
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
   if (!failures || failures.length === 0) return null;
   return (
-    <section id="section-failures" className="mb-8">
-      <SectionLabel color={color}>Failure Modes & Fixes</SectionLabel>
-      <div className="space-y-3">
-        {failures.map((f: FailureMode) => (
-          <div
+    <section id="section-failures" className="mb-10">
+      <div className="flex items-center justify-between mb-3">
+        <SectionLabel color={color}>Failure Modes</SectionLabel>
+        <span className="text-xs mb-3" style={{ color: 'var(--td)' }}>tap to expand</span>
+      </div>
+      <div className="space-y-2">
+        {failures.map((f, i) => (
+          <FailureCard
             key={f.name}
-            className="rounded-xl p-4"
-            style={{ background: 'var(--s1)', border: '1px solid var(--b0)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-          >
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <span className="text-sm font-semibold" style={{ color: 'var(--t)' }}>{f.name}</span>
-              <span
-                className="section-label px-2.5 py-0.5 rounded-full"
-                style={{
-                  background: f.severity === 'critical' ? 'var(--sev-critical-bg)' : f.severity === 'high' ? 'var(--sev-high-bg)' : 'var(--sev-medium-bg)',
-                  color: f.severity === 'critical' ? 'var(--sev-critical)' : f.severity === 'high' ? 'var(--sev-high)' : 'var(--sev-medium)',
-                  border: `1px solid ${f.severity === 'critical' ? 'var(--sev-critical)' : f.severity === 'high' ? 'var(--sev-high)' : 'var(--sev-medium)'}`,
-                }}
-              >
-                {f.severity?.toUpperCase()}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <div className="section-label mb-1" style={{ color: 'var(--accent)' }}>Cause</div>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)' }}>{f.cause}</p>
-              </div>
-              <div>
-                <div className="section-label mb-1" style={{ color: '#c97070' }}>Symptom</div>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)' }}>{f.symptom}</p>
-              </div>
-              <div>
-                <div className="section-label mb-1" style={{ color: '#4db896' }}>Fix</div>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--tm)' }}>{f.fix}</p>
-              </div>
-            </div>
-          </div>
+            f={f}
+            isOpen={openIdx === i}
+            onToggle={() => setOpenIdx(openIdx === i ? null : i)}
+          />
         ))}
       </div>
     </section>
@@ -371,8 +484,8 @@ function CodeSection({ concept }: { concept: Concept }) {
   }
 
   return (
-    <section id="section-code" className="mb-8">
-      <SectionLabel color={color}>Code Example & Case Study</SectionLabel>
+    <section id="section-code" className="mb-10">
+      <SectionLabel color={color}>Code & Case Study</SectionLabel>
       <div className="space-y-3">
         {concept.te.code && (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--b0)' }}>
@@ -380,24 +493,20 @@ function CodeSection({ concept }: { concept: Concept }) {
               className="flex items-center justify-between px-4 py-2.5"
               style={{ background: 'var(--s2)', borderBottom: '1px solid var(--b0)' }}
             >
-              <span className="section-label" style={{ color: 'var(--tm)' }}>{concept.title}</span>
+              <div className="flex items-center gap-2">
+                <Code2 size={13} strokeWidth={2} style={{ color: 'var(--tm)' }} />
+                <span className="section-label" style={{ color: 'var(--tm)' }}>{concept.title}</span>
+              </div>
               <button
                 onClick={copy}
                 className="flex items-center justify-center rounded-md transition-colors"
-                style={{
-                  width: 28, height: 28,
-                  color: copied ? '#4db896' : 'var(--tm)',
-                  background: 'transparent',
-                }}
+                style={{ width: 28, height: 28, color: copied ? '#4db896' : 'var(--tm)', background: 'transparent' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--s3)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 title={copied ? 'Copied!' : 'Copy code'}
                 aria-label={copied ? 'Copied!' : 'Copy code'}
               >
-                {copied
-                  ? <Check size={14} strokeWidth={2.5} />
-                  : <Copy size={14} strokeWidth={2} />
-                }
+                {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
               </button>
             </div>
             <pre
@@ -435,10 +544,10 @@ function InterviewSection({ concept }: { concept: Concept }) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   return (
-    <section id="section-interview" className="mb-8">
+    <section id="section-interview" className="mb-10">
       <SectionLabel color={color}>Interview Prep</SectionLabel>
       <div className="space-y-3">
-        <Card>
+        <div className="rounded-xl p-5" style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}>
           <div className="section-label mb-2" style={{ color: 'var(--accent)' }}>Common Question</div>
           <p className="text-sm font-semibold leading-relaxed mb-4" style={{ color: 'var(--t)' }}>
             {concept.interview.q}
@@ -447,11 +556,7 @@ function InterviewSection({ concept }: { concept: Concept }) {
             <button
               onClick={() => setShowAnswer(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-              style={{
-                background: `${color}10`,
-                border: `1px solid ${color}30`,
-                color,
-              }}
+              style={{ background: `${color}10`, border: `1px solid ${color}30`, color }}
             >
               Show Model Answer
               <ChevronDown size={13} strokeWidth={2.5} />
@@ -478,8 +583,7 @@ function InterviewSection({ concept }: { concept: Concept }) {
               </motion.div>
             </AnimatePresence>
           )}
-        </Card>
-
+        </div>
         <div className="rounded-xl p-4" style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}>
           <div className="section-label mb-3" style={{ color: 'var(--tm)' }}>Follow-up Questions</div>
           <ul className="space-y-2.5">
@@ -496,10 +600,50 @@ function InterviewSection({ concept }: { concept: Concept }) {
   );
 }
 
+/* ── Continue Learning ── */
+
+function ContinueLearning({ concept }: { concept: Concept }) {
+  const idx = CONCEPTS.findIndex(c => c.id === concept.id);
+  const next = idx < CONCEPTS.length - 1 ? CONCEPTS[idx + 1] : CONCEPTS[0];
+  const nextColor = getCatColor(next.cat);
+  const nextCatLabel = CATEGORIES.find(c => c.id === next.cat)?.label;
+
+  return (
+    <section className="mb-2">
+      <div className="section-label mb-3" style={{ color: 'var(--td)' }}>Continue Learning</div>
+      <Link
+        href={`/lab?concept=${next.id}`}
+        className="block rounded-2xl p-4 transition-all"
+        style={{ background: 'var(--s1)', border: '1px solid var(--b0)' }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = `${nextColor}40`)}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--b0)')}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center justify-center rounded-xl flex-shrink-0"
+            style={{ width: 40, height: 40, background: `${nextColor}12`, border: `1px solid ${nextColor}25` }}
+          >
+            <ConceptIcon conceptId={next.id} size={20} color={nextColor} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs mb-0.5" style={{ color: 'var(--td)' }}>Next up</div>
+            <div className="text-sm font-bold truncate" style={{ color: 'var(--t)' }}>{next.title}</div>
+            {nextCatLabel && (
+              <div className="text-xs mt-0.5" style={{ color: nextColor }}>{nextCatLabel}</div>
+            )}
+          </div>
+          <ArrowRight size={16} strokeWidth={2} style={{ color: 'var(--td)', flexShrink: 0 }} />
+        </div>
+      </Link>
+    </section>
+  );
+}
+
 /* ── Header ── */
 
 function ConceptHeader({ concept }: { concept: Concept }) {
   const color = getCatColor(concept.cat);
+  const catLabel = CATEGORIES.find(c => c.id === concept.cat)?.label;
   const idx = CONCEPTS.findIndex(c => c.id === concept.id);
   const prev = idx > 0 ? CONCEPTS[idx - 1] : null;
   const next = idx < CONCEPTS.length - 1 ? CONCEPTS[idx + 1] : null;
@@ -516,9 +660,19 @@ function ConceptHeader({ concept }: { concept: Concept }) {
         <ConceptIcon conceptId={concept.id} size={18} color={color} />
       </div>
       <div className="flex-1 min-w-0">
-        <h1 className="text-base font-bold leading-tight truncate" style={{ color: 'var(--t)' }}>
-          {concept.title}
-        </h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-base font-bold leading-tight" style={{ color: 'var(--t)' }}>
+            {concept.title}
+          </h1>
+          {catLabel && (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-medium hidden sm:inline-flex"
+              style={{ background: `${color}12`, color, border: `1px solid ${color}22` }}
+            >
+              {catLabel}
+            </span>
+          )}
+        </div>
         <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--td)' }}>{concept.tag}</p>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -551,7 +705,7 @@ function ConceptHeader({ concept }: { concept: Concept }) {
   );
 }
 
-/* ── Main ConceptPage ── */
+/* ── Main ── */
 
 export default function ConceptPage({ concept }: { concept: Concept }) {
   const [activeSection, setActiveSection] = useState('overview');
@@ -607,6 +761,7 @@ export default function ConceptPage({ concept }: { concept: Concept }) {
           <FailuresSection   concept={concept} />
           <CodeSection       concept={concept} />
           <InterviewSection  concept={concept} />
+          <ContinueLearning  concept={concept} />
         </motion.div>
       </div>
     </div>
