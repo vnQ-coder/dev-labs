@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Globe as GlobeIcon, Trophy } from 'lucide-react';
 import { CONCEPTS } from '@/lib/data/concepts';
 import { CATEGORIES } from '@/lib/data/categories';
+import ConceptIcon from './icons/ConceptIcon';
 
 interface Result {
   type: 'concept' | 'section';
@@ -17,8 +19,8 @@ interface Result {
 }
 
 const STATIC_RESULTS: Result[] = [
-  { type: 'section', id: 'realworld', title: 'Real World Systems', sub: 'Netflix, Uber, Discord…', icon: '🌍', color: '#fbbf24', href: '/lab?view=realworld' },
-  { type: 'section', id: 'quiz',      title: 'Take the Quiz',      sub: '16 interview questions',  icon: '🎯', color: '#f87171', href: '/lab?view=quiz'      },
+  { type: 'section', id: 'realworld', title: 'Real World Systems', sub: 'Netflix, Uber, Discord…', icon: 'realworld', color: '#fbbf24', href: '/lab?view=realworld' },
+  { type: 'section', id: 'quiz',      title: 'Take the Quiz',      sub: '16 interview questions',  icon: 'quiz',      color: '#f87171', href: '/lab?view=quiz'      },
 ];
 
 function buildResults(query: string): Result[] {
@@ -122,7 +124,7 @@ export default function CommandPalette({ open, onClose }: Props) {
             exit={{ opacity: 0, scale: 0.96, y: -12 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="fixed z-50 left-1/2 top-[18vh]"
-            style={{ transform: 'translateX(-50%)', width: '100%', maxWidth: 560, padding: '0 16px' }}
+            style={{ transform: 'translateX(-50%)', width: '100%', maxWidth: 560, padding: '0 clamp(12px, 4vw, 16px)' }}
           >
             <div
               className="rounded-2xl overflow-hidden"
@@ -137,7 +139,7 @@ export default function CommandPalette({ open, onClose }: Props) {
                 className="flex items-center gap-3 px-4 py-3"
                 style={{ borderBottom: '1px solid var(--b1)' }}
               >
-                <span style={{ color: 'var(--tm)', fontSize: 16 }}>🔍</span>
+                <Search size={16} strokeWidth={2} style={{ color: 'var(--tm)', flexShrink: 0 }} />
                 <input
                   ref={inputRef}
                   value={query}
@@ -181,7 +183,9 @@ export default function CommandPalette({ open, onClose }: Props) {
                       className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-base"
                       style={{ background: `${item.color}18`, border: `1px solid ${item.color}30` }}
                     >
-                      {item.icon}
+                      {item.type === 'section' && item.id === 'realworld' && <GlobeIcon size={15} strokeWidth={2} color={item.color} />}
+                      {item.type === 'section' && item.id === 'quiz'      && <Trophy    size={15} strokeWidth={2} color={item.color} />}
+                      {item.type === 'concept' && <ConceptIcon conceptId={item.id} size={15} color={item.color} />}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate" style={{ color: selected === i ? item.color : 'var(--t)', fontFamily: 'var(--font-display)' }}>
