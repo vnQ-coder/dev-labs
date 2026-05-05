@@ -3,168 +3,248 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import dynamic from 'next/dynamic';
+import { FlaskConical } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { CONCEPTS } from '@/lib/data/concepts';
 
-const HeroFlow = dynamic(() => import('./HeroFlow'), { ssr: false });
-
-const HERO_CONCEPTS = [
-  { label: 'Load Balancing',  id: 'loadbalancer', color: '#34d399' },
-  { label: 'Caching',         id: 'caching',       color: '#38bdf8' },
-  { label: 'CDN',             id: 'cdn',            color: '#38bdf8' },
-  { label: 'Sharding',        id: 'sharding',       color: '#a78bfa' },
-  { label: 'Kafka',           id: 'kafka',          color: '#16a34a' },
-  { label: 'RabbitMQ',        id: 'rabbitmq',       color: '#f97316' },
-  { label: 'BullMQ',          id: 'bullmq',         color: '#ef4444' },
-  { label: 'CAP Theorem',     id: 'cap',            color: '#a78bfa' },
-  { label: 'Circuit Breaker', id: 'circuit',        color: '#f87171' },
-  { label: 'Rate Limiting',   id: 'ratelimit',      color: '#f59e0b' },
-];
+const fadeUp = (delay: number) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] as const },
+});
 
 export default function Hero() {
   const router = useRouter();
+  const allTitles = CONCEPTS.map(c => c.title);
+  const tickerItems = [...allTitles, ...allTitles];
 
   return (
-    <div
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: 'var(--bg)' }}
-    >
-      {/* Animated React Flow background */}
-      <HeroFlow />
+    <div className="relative min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
 
-      {/* Radial gradient overlay to focus center */}
-      <div
+      {/* ── Fixed top nav ── */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-8"
         style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, var(--bg) 80%)',
-          pointerEvents: 'none',
-          zIndex: 1,
+          height: 56,
+          background: 'color-mix(in srgb, var(--bg) 90%, transparent)',
+          borderBottom: '1px solid var(--b0)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}
-      />
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center rounded-lg"
+            style={{ width: 26, height: 26, background: 'var(--accent)', color: '#0d1117' }}
+          >
+            <FlaskConical size={13} strokeWidth={2.5} />
+          </div>
+          <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--t)' }}>
+            System Design Lab
+          </span>
+        </div>
 
-      {/* Theme toggle */}
-      <div className="absolute top-5 right-5 z-20">
-        <ThemeToggle />
-      </div>
+        {/* Nav links — hidden on mobile */}
+        <nav className="hidden md:flex items-center gap-6">
+          {[
+            { label: 'Concepts', href: '/lab' },
+            { label: 'Diagrams', href: '/lab' },
+            { label: 'Interview', href: '/lab' },
+          ].map(item => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="text-sm transition-colors"
+              style={{ color: 'var(--tm)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--t)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--tm)')}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-4xl mx-auto">
-
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
-          style={{
-            background: 'rgba(56,189,248,0.10)',
-            border: '1px solid rgba(56,189,248,0.25)',
-            color: 'var(--p)',
-            fontFamily: 'var(--font-display)',
-            letterSpacing: '0.06em',
-          }}
-        >
-          <span
+        {/* Right: CTA + theme */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/lab')}
+            className="hidden md:flex items-center gap-1.5 rounded-lg text-xs font-semibold transition-colors"
             style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: 'var(--g)',
-              display: 'inline-block',
-              animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite',
+              padding: '6px 14px',
+              background: 'var(--accent-subtle)',
+              border: '1px solid var(--accent-border)',
+              color: 'var(--accent)',
             }}
-          />
-          15 CONCEPTS · INTERACTIVE DIAGRAMS · INTERVIEW PREP
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--accent)';
+              e.currentTarget.style.color = '#0d1117';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--accent-subtle)';
+              e.currentTarget.style.color = 'var(--accent)';
+            }}
+          >
+            Open Lab
+          </button>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {/* ── Center content ── */}
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 pt-24 pb-16">
+
+        {/* Eyebrow */}
+        <motion.div {...fadeUp(0)}>
+          <div
+            className="inline-flex items-center gap-2 rounded-full mb-8"
+            style={{
+              padding: '4px 14px',
+              background: 'var(--accent-subtle)',
+              border: '1px solid var(--accent-border)',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.10em',
+              color: 'var(--accent)',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span
+              style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: 'var(--accent)',
+                display: 'inline-block',
+                animation: 'ping 2s cubic-bezier(0,0,0.2,1) infinite',
+              }}
+            />
+            {CONCEPTS.length} Concepts · Interactive Diagrams · Interview Prep
+          </div>
         </motion.div>
 
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-6"
-        >
+        {/* H1 */}
+        <motion.div {...fadeUp(0.08)} className="mb-5">
           <h1
-            className="text-6xl md:text-8xl font-bold leading-[0.95] tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="tracking-tight"
+            style={{
+              fontSize: 'clamp(2.5rem, 8vw, 5rem)',
+              fontWeight: 900,
+              lineHeight: 1.02,
+              letterSpacing: '-0.04em',
+              color: 'var(--t)',
+            }}
           >
-            <span className="block" style={{ color: 'var(--t)' }}>SYSTEM</span>
-            <span className="block" style={{ color: 'var(--t)' }}>DESIGN</span>
-            <span
-              className="block"
-              style={{
-                color: 'transparent',
-                backgroundImage: 'linear-gradient(135deg, #38bdf8, #a78bfa)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-              }}
-            >
-              LAB
+            System Design
+            <span className="block" style={{ WebkitTextStroke: '1.5px var(--b2)', color: 'transparent' }}>
+              from{' '}
+              <span style={{ WebkitTextStroke: '0', color: 'var(--accent)' }}>zero</span>
+              {' '}to staff.
             </span>
           </h1>
         </motion.div>
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-base md:text-lg max-w-xl leading-relaxed mb-10"
-          style={{ color: 'var(--tm)', fontFamily: 'var(--font-sans)' }}
-        >
-          From beginner intuition to staff-level precision. Every concept explained
-          with analogies, live diagrams, real-world cases, and CTO-grade interview answers.
-        </motion.p>
-
-        {/* CTA */}
-        <motion.button
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => router.push('/lab')}
-          className="px-10 py-3.5 rounded-xl text-base font-semibold transition-all"
+          {...fadeUp(0.16)}
+          className="max-w-md mb-10"
           style={{
-            background: 'var(--p)',
-            color: '#060a12',
-            boxShadow: '0 0 32px rgba(56,189,248,0.25)',
-            fontFamily: 'var(--font-display)',
-            letterSpacing: '0.02em',
+            fontSize: '1rem',
+            lineHeight: 1.65,
+            color: 'var(--tm)',
           }}
         >
-          Open the Lab →
-        </motion.button>
+          Every concept explained with real-world analogies, interactive diagrams,
+          and CTO-grade interview answers.
+        </motion.p>
 
-        {/* Concept pills */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.55 }}
-          className="flex flex-wrap justify-center gap-2 mt-14"
-        >
-          {HERO_CONCEPTS.map(c => (
-            <Link
-              key={c.id}
-              href={`/lab?concept=${c.id}`}
-              className="text-xs px-3.5 py-1.5 rounded-full border transition-all hover:scale-105"
+        {/* CTA row */}
+        <motion.div {...fadeUp(0.24)} className="flex items-center gap-3 flex-wrap justify-center">
+          <button
+            onClick={() => router.push('/lab')}
+            className="rounded-lg font-semibold transition-all"
+            style={{
+              padding: '10px 24px',
+              background: 'var(--accent)',
+              color: '#0d1117',
+              fontSize: '0.9375rem',
+              boxShadow: '0 4px 20px var(--accent-subtle)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--accent-hover)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 8px 28px var(--accent-subtle)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--accent)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px var(--accent-subtle)';
+            }}
+          >
+            Open the Lab →
+          </button>
+          <Link
+            href="/lab"
+            className="rounded-lg font-medium transition-colors"
+            style={{
+              padding: '10px 20px',
+              background: 'transparent',
+              border: '1px solid var(--b1)',
+              color: 'var(--tm)',
+              fontSize: '0.9375rem',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--b2)';
+              e.currentTarget.style.color = 'var(--t)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--b1)';
+              e.currentTarget.style.color = 'var(--tm)';
+            }}
+          >
+            Browse Concepts
+          </Link>
+        </motion.div>
+      </main>
+
+      {/* ── Ticker footer ── */}
+      <footer
+        className="fixed bottom-0 left-0 right-0 overflow-hidden flex-shrink-0"
+        style={{
+          height: 40,
+          borderTop: '1px solid var(--b0)',
+          background: 'var(--s1)',
+        }}
+      >
+        <div className="ticker-track flex items-center h-full" style={{ width: 'max-content' }}>
+          {tickerItems.map((title, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 flex-shrink-0"
               style={{
-                borderColor: `${c.color}30`,
-                color: c.color,
-                background: `${c.color}0d`,
-                fontFamily: 'var(--font-display)',
-                fontWeight: 500,
+                padding: '0 20px',
+                height: '100%',
+                borderRight: '1px solid var(--b0)',
               }}
             >
-              {c.label}
-            </Link>
+              <span
+                style={{
+                  width: 4, height: 4, borderRadius: '50%',
+                  background: 'var(--accent)',
+                  opacity: 0.5,
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--td)', whiteSpace: 'nowrap' }}>
+                {title}
+              </span>
+            </div>
           ))}
-        </motion.div>
-      </div>
+        </div>
+      </footer>
 
       <style>{`
         @keyframes ping {
           0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(2); opacity: 0.35; }
+          50% { transform: scale(2.2); opacity: 0.3; }
         }
       `}</style>
     </div>
