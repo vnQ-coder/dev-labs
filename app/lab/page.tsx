@@ -76,7 +76,7 @@ function WelcomeScreen({ onOpenPalette }: { onOpenPalette: () => void }) {
         className="text-2xl font-bold mb-2 tracking-tight"
         style={{ color: 'var(--t)', letterSpacing: '-0.02em' }}
       >
-        System Design Lab
+        Dev Labs
       </h2>
       <p className="text-sm max-w-xs mb-8" style={{ color: 'var(--tm)', lineHeight: 1.65 }}>
         {CONCEPTS.length} concepts. Interactive diagrams. CTO-level interview answers.

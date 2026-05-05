@@ -20,7 +20,7 @@ export default function Quiz() {
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-black mb-1" style={{ color: 'var(--r)' }}>
-          System Design Quiz
+          Dev Labs Quiz
         </h2>
         <div className="flex items-center gap-3">
           <div className="flex-1 h-1.5 rounded-full" style={{ background: 'var(--s3)' }}>

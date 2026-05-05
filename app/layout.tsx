@@ -17,12 +17,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'System Design Lab',
+  title: 'Dev Labs',
   description:
-    'Master every architecture concept through real-world analogies, interactive diagrams, and CTO-level interview prep.',
+    'Master software engineering concepts through real-world analogies, interactive diagrams, and CTO-level interview prep.',
   openGraph: {
-    title: 'System Design Lab',
-    description: 'Master system design from beginner to staff-level engineer.',
+    title: 'Dev Labs',
+    description: 'Master software engineering from beginner to staff-level engineer.',
     type: 'website',
   },
 };

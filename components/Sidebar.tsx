@@ -57,9 +57,8 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
           </div>
           <div>
             <div className="text-xs font-bold tracking-tight leading-tight" style={{ color: 'var(--t)' }}>
-              System Design
+              Dev Labs
             </div>
-            <div className="text-xs font-semibold" style={{ color: 'var(--tm)', fontSize: 10 }}>Lab</div>
           </div>
         </button>
       </div>

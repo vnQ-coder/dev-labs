@@ -41,7 +41,7 @@ export default function Hero() {
             <FlaskConical size={13} strokeWidth={2.5} />
           </div>
           <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--t)' }}>
-            System Design Lab
+            Dev Labs
           </span>
         </div>
 
@@ -133,7 +133,7 @@ export default function Hero() {
               color: 'var(--t)',
             }}
           >
-            System Design
+            Dev Labs
             <span className="block" style={{ WebkitTextStroke: '1.5px var(--b2)', color: 'transparent' }}>
               from{' '}
               <span style={{ WebkitTextStroke: '0', color: 'var(--accent)' }}>zero</span>

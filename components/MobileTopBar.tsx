@@ -47,7 +47,7 @@ export default function MobileTopBar({ onOpenPalette }: MobileTopBarProps) {
             <FlaskConical size={13} strokeWidth={2.5} />
           </div>
           <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--t)' }}>
-            System Design Lab
+            Dev Labs
           </span>
         </div>
 
