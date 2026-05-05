@@ -117,14 +117,14 @@ export default function CommandPalette({ open, onClose }: Props) {
             onClick={onClose}
           />
 
-          {/* Panel */}
+          {/* Panel — outer div handles centering, motion.div handles animation only */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ pointerEvents: 'none' }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: -12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -12 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed z-50 left-1/2 top-1/2"
-            style={{ transform: 'translate(-50%, -50%)', width: '100%', maxWidth: 560, padding: '0 clamp(12px, 4vw, 16px)' }}
+            style={{ width: 'min(560px, 100%)', pointerEvents: 'auto' }}
           >
             <div
               className="rounded-2xl overflow-hidden"
@@ -215,6 +215,7 @@ export default function CommandPalette({ open, onClose }: Props) {
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
