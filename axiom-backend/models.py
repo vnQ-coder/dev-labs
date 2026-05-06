@@ -28,7 +28,7 @@ class ConversationTurn(BaseModel):
 
 class AgentRequest(BaseModel):
     mode: Literal["ask", "interview", "quiz", "debug", "threeam", "onboard", "path_greeting"] = "ask"
-    message: str = Field(..., min_length=1, max_length=2000)
+    message: str = Field(..., min_length=1, max_length=2000)  # increased for onboard profile text (includes full concept ID list)
     concept_id: Optional[str] = None
     memory: Optional[MemorySummary] = None
     history: list[ConversationTurn] = Field(default=[], max_length=6)
