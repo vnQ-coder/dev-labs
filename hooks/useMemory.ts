@@ -17,6 +17,8 @@ export interface AxiomMemory {
   last_session: string | null;
   total_messages: number;
   explained_topics: ExplainedTopic[];
+  display_name: string;
+  target_role: string;
 }
 
 const DEFAULT_MEMORY: AxiomMemory = {
@@ -29,6 +31,8 @@ const DEFAULT_MEMORY: AxiomMemory = {
   last_session: null,
   total_messages: 0,
   explained_topics: [],
+  display_name: '',
+  target_role: '',
 };
 
 const STORAGE_KEY = 'axiom-memory-v1';
