@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, Copy, Check, ChevronLeft,
   ChevronRight, X, Menu, BookOpen, ChevronDown,
   Layers, Bug,
+  Hexagon, Box, LayoutList, CloudCog, FolderOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -51,6 +52,11 @@ const CONCEPT_ICONS: Record<string, LucideIcon> = {
   'debug-network':    Bug,
   'osi-layers':       Layers,
   'network-protocols': Radio,
+  kubernetes:         Hexagon,
+  docker:             Box,
+  ecs:                LayoutList,
+  eks:                CloudCog,
+  ecr:                FolderOpen,
 };
 
 interface ConceptIconProps {
