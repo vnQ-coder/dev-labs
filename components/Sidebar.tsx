@@ -10,6 +10,8 @@ import { CATEGORIES } from '@/lib/data/categories';
 import { useProgress } from '@/hooks/useProgress';
 import ConceptIcon from './icons/ConceptIcon';
 import ThemeToggle from './ThemeToggle';
+import { useLearningPath } from '@/hooks/useLearningPath';
+import { loadProfile } from '@/lib/profile';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -21,6 +23,8 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   const params = useSearchParams();
   const [activeCat, setActiveCat] = useState<string>('all');
   const { isViewed, count } = useProgress();
+  const { completedCount, totalConcepts, path } = useLearningPath();
+  const profile = typeof window !== 'undefined' ? loadProfile() : null;
 
   const currentConcept = params.get('concept');
   const currentView = params.get('view');
@@ -207,6 +211,25 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
       {/* Footer nav */}
       <div className="px-2 pb-2 flex-shrink-0" style={{ borderTop: '1px solid var(--b0)' }}>
         <div className="pt-2 space-y-0.5">
+          {path && (
+            <button
+              onClick={() => navigate('/path')}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors mb-1"
+              style={{
+                background: 'rgba(99,102,241,0.1)',
+                border: '1px solid rgba(99,102,241,0.2)',
+              }}
+            >
+              <div
+                className="flex items-center justify-center rounded-md flex-shrink-0"
+                style={{ width: 22, height: 22, background: 'rgba(99,102,241,0.15)' }}
+              >
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 6px #6366f1' }} />
+              </div>
+              <span className="text-xs font-bold flex-1" style={{ color: '#a5b4fc' }}>My Path</span>
+              <span className="text-xs" style={{ color: '#6b7280' }}>{completedCount}/{totalConcepts}</span>
+            </button>
+          )}
           <button
             onClick={() => navigate('/lab?view=realworld')}
             className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors"
@@ -324,6 +347,31 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
             }}
           />
         </div>
+
+        {profile && (
+          <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 10 }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--t)' }}>{profile.name}</div>
+            <div style={{ fontSize: '0.68rem', color: '#6366f1', marginTop: 2 }}>→ {profile.targetRole}</div>
+            <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' as const }}>
+              {profile.currentStack.slice(0, 4).map((t: string) => (
+                <span key={t} style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '1px 6px', borderRadius: 3, fontSize: '0.62rem' }}>{t}</span>
+              ))}
+              {profile.currentStack.length > 4 && (
+                <span style={{ color: '#6b7280', fontSize: '0.62rem', padding: '1px 4px' }}>+{profile.currentStack.length - 4} more</span>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('axiom-profile-v1');
+                localStorage.removeItem('axiom-path-v1');
+                window.location.href = '/';
+              }}
+              style={{ marginTop: 8, background: 'none', border: 'none', color: '#4b5563', fontSize: '0.65rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            >
+              Edit profile →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
