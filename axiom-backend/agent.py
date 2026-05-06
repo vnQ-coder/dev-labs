@@ -132,14 +132,14 @@ You are a world-class expert in three interconnected domains:
 2. **Cloud Infrastructure** — AWS (EC2, ECS, EKS, ECR, Lambda, S3, RDS, VPC, IAM, CloudFront, Route53), Kubernetes (control plane, pods, deployments, RBAC, Karpenter, IRSA), Docker (OCI layers, containerd, Dockerfile best practices), Helm, service meshes
 3. **Networking & Internet** — DNS resolution, TCP/IP stack, OSI model all 7 layers, HTTPS/TLS handshake, CDN edge caching, reverse proxies, debugging with curl/dig/traceroute/tcpdump
 
-## TOOLS
+{"" if request.mode == "onboard" else """## TOOLS
 You have access to the app's structured knowledge base. ALWAYS call tools to ground your answers:
 - `get_concept(concept_id)` — retrieve full details of any concept
 - `search_concepts(query)` — find relevant concepts by keyword
 - `get_real_world_system(system_name)` — get Netflix/Uber/Discord design details
 
 **Tool use discipline:** Always call at least one tool before answering technical questions. If the answer is not found in the tool results, say so explicitly — do NOT fabricate details. For topics outside your training data or the knowledge base, acknowledge uncertainty rather than guessing.
-
+"""}
 ## CURRENT MODE
 {MODE_PROMPTS.get(request.mode, MODE_PROMPTS["ask"])}
 
@@ -156,12 +156,12 @@ When explaining systems, flows, or architectures where a visual would help under
 
 Format: wrap in triple backtick mermaid blocks. Keep diagrams focused — max 10-12 nodes. Always explain the diagram after rendering it.
 
-## RESPONSE STYLE
+{"## OUTPUT\nReturn only the raw JSON object. No markdown. No explanation. No suggested questions. No code fences." if request.mode == "onboard" else """## RESPONSE STYLE
 - Use markdown formatting (headers, bold, code blocks, bullet points)
 - Be technically precise but never condescending
 - When referencing a concept from the app, mention it by name so users can find it
 - Always end with 2-3 suggested follow-up questions the user might want to ask next
-- Format suggested questions as: **Suggested next questions:** \\n- Question 1\\n- Question 2
+- Format suggested questions as: **Suggested next questions:** \\n- Question 1\\n- Question 2"""}
 
 ## ANTI-HALLUCINATION (MANDATORY)
 - If you don't know something with high confidence, say "I'm not certain about this — you should verify with the official docs"
@@ -196,22 +196,29 @@ async def run_agent(request: AgentRequest) -> AsyncIterator[str]:
     user_message = f"[USER_INPUT]{request.message}[/USER_INPUT]"
 
     try:
-        # Build tools list — try to add Google Search grounding if supported
-        tools_list: list = [{"function_declarations": TOOL_DECLARATIONS}]
-        try:
-            # google_search_retrieval is supported in google-generativeai >= 0.7 for Gemini 2.x
-            from google.generativeai import types as genai_types
-            if hasattr(genai_types, "GoogleSearchRetrieval"):
-                tools_list.append(genai_types.Tool(google_search_retrieval=genai_types.GoogleSearchRetrieval()))
-        except Exception:
-            pass  # Grounding not available — anti-hallucination prompt handles this
+        is_onboard = request.mode == "onboard"
+
+        # onboard mode: no tools (prevents tool calls corrupting JSON output), low temperature for schema adherence
+        if is_onboard:
+            tools_list = None
+            temperature = 0.1
+        else:
+            tools_list = [{"function_declarations": TOOL_DECLARATIONS}]
+            temperature = 0.7
+            try:
+                # google_search_retrieval is supported in google-generativeai >= 0.7 for Gemini 2.x
+                from google.generativeai import types as genai_types
+                if hasattr(genai_types, "GoogleSearchRetrieval"):
+                    tools_list.append(genai_types.Tool(google_search_retrieval=genai_types.GoogleSearchRetrieval()))
+            except Exception:
+                pass  # Grounding not available — anti-hallucination prompt handles this
 
         model = genai.GenerativeModel(
             model_name="gemini-2.5-flash",
             system_instruction=system_prompt,
             tools=tools_list,
             generation_config={
-                "temperature": 0.7,
+                "temperature": temperature,
                 "top_p": 0.9,
                 "max_output_tokens": 3072,
             },
