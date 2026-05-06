@@ -155,7 +155,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       try {
         path = await generateLearningPath(profile);
       } catch {
+        // Both attempts failed — use role-based fallback path
         path = getFallbackPath(profile.targetRole);
+        setApiError('Could not reach Axiom — showing a default path for your role instead.');
       }
     }
 
