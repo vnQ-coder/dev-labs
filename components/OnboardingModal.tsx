@@ -49,9 +49,10 @@ Generate the learning path JSON now.`;
   });
 
   if (!response.ok) throw new Error(`API error ${response.status}`);
+  if (!response.body) throw new Error('Response body is null');
 
   // Collect all SSE chunks into full text
-  const reader = response.body!.getReader();
+  const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
   let fullText = '';
@@ -64,11 +65,10 @@ Generate the learning path JSON now.`;
     buffer = lines.pop() || '';
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue;
-      try {
-        const data = JSON.parse(line.slice(6));
-        if (data.chunk) fullText += data.chunk;
-        if (data.error) throw new Error(data.error);
-      } catch {}
+      let data: { chunk?: string; error?: string; done?: boolean };
+      try { data = JSON.parse(line.slice(6)); } catch { continue; }
+      if (data.error) throw new Error(data.error);
+      if (data.chunk) fullText += data.chunk;
     }
   }
 
@@ -134,6 +134,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     if (!validate()) return;
     setApiError('');
     setLoading(true);
+    setLoadingPhrase(LOADING_PHRASES[0]);
 
     const profile: UserProfile = {
       name: name.trim(),
@@ -147,7 +148,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     saveProfile(profile);
     saveMemory({ display_name: profile.name, target_role: profile.targetRole });
 
-    let path: LearningPath;
+    let path: LearningPath = getFallbackPath(profile.targetRole);
     try {
       path = await generateLearningPath(profile);
     } catch {
@@ -155,8 +156,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       try {
         path = await generateLearningPath(profile);
       } catch {
-        // Both attempts failed — use role-based fallback path
-        path = getFallbackPath(profile.targetRole);
+        // Both attempts failed — keep the initialized fallback
         setApiError('Could not reach Axiom — showing a default path for your role instead.');
       }
     }
@@ -270,7 +270,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         {/* API Error */}
         {apiError && (
           <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', fontSize: '0.8rem' }}>
-            {apiError} — <button type="button" onClick={handleSubmit} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>Retry</button>
+            {apiError} — <button type="button" onClick={handleSubmit} disabled={loading} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>Retry</button>
           </div>
         )}
 
