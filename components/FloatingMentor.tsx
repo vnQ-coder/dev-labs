@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useMemory } from '@/hooks/useMemory';
 import { useAxiom, AgentMode, Message } from '@/hooks/useAxiom';
+import { MermaidBlock } from '@/components/MermaidBlock';
 
 interface FloatingMentorProps {
   conceptId: string;
@@ -345,7 +346,11 @@ function renderMiniMarkdown(text: string): React.ReactNode[] {
         i++;
       }
       i++;
-      nodes.push(<MiniCodeBlock key={`code-${i}`} code={codeLines.join('\n')} lang={lang} />);
+      if (lang === 'mermaid') {
+        nodes.push(<MermaidBlock key={`mermaid-${i}`} code={codeLines.join('\n')} mini />);
+      } else {
+        nodes.push(<MiniCodeBlock key={`code-${i}`} code={codeLines.join('\n')} lang={lang} />);
+      }
       continue;
     }
 

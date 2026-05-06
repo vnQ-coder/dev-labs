@@ -73,6 +73,7 @@ export function useAxiom({ memory, onMemoryUpdate }: UseAxiomOptions) {
       quiz_scores: memory.quiz_scores,
       interview_sessions: memory.interview_sessions,
       preferred_style: memory.preferred_style,
+      explained_topics: (memory.explained_topics || []).slice(-8),
     };
 
     abortRef.current = new AbortController();

@@ -1,6 +1,12 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 
+export interface ExplainedTopic {
+  topic: string;
+  depth: 'surface' | 'deep' | 'expert';
+  date: string;
+}
+
 export interface AxiomMemory {
   studied_concepts: string[];
   weak_areas: string[];
@@ -10,6 +16,7 @@ export interface AxiomMemory {
   preferred_style: string;
   last_session: string | null;
   total_messages: number;
+  explained_topics: ExplainedTopic[];
 }
 
 const DEFAULT_MEMORY: AxiomMemory = {
@@ -21,6 +28,7 @@ const DEFAULT_MEMORY: AxiomMemory = {
   preferred_style: '',
   last_session: null,
   total_messages: 0,
+  explained_topics: [],
 };
 
 const STORAGE_KEY = 'axiom-memory-v1';
@@ -56,7 +64,7 @@ export function useMemory() {
     });
   }, []);
 
-  const applyMemoryUpdate = useCallback((update: { weak_areas?: string[]; strong_areas?: string[]; session_note?: string; interview_score?: number } | null) => {
+  const applyMemoryUpdate = useCallback((update: { weak_areas?: string[]; strong_areas?: string[]; session_note?: string; interview_score?: number; explained_topics?: ExplainedTopic[] } | null) => {
     if (!update) return;
     setMemory(prev => {
       const next = { ...prev };
@@ -68,6 +76,14 @@ export function useMemory() {
       }
       if (update.interview_score !== undefined) {
         next.interview_sessions = prev.interview_sessions + 1;
+      }
+      if (update.explained_topics?.length) {
+        // Merge, deduplicate by topic (keep latest entry), keep last 30
+        const existing = prev.explained_topics || [];
+        const incoming = update.explained_topics;
+        const topicMap = new Map(existing.map(t => [t.topic, t]));
+        for (const t of incoming) topicMap.set(t.topic, t);
+        next.explained_topics = [...topicMap.values()].slice(-30);
       }
       next.last_session = new Date().toISOString();
       next.total_messages = prev.total_messages + 1;

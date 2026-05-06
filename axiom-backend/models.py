@@ -3,6 +3,12 @@ from typing import Optional, Literal
 import bleach
 
 
+class ExplainedTopic(BaseModel):
+    topic: str
+    depth: str  # "surface" | "deep" | "expert"
+    date: str   # ISO date string
+
+
 class MemorySummary(BaseModel):
     studied_concepts: list[str] = []
     weak_areas: list[str] = []
@@ -10,6 +16,7 @@ class MemorySummary(BaseModel):
     quiz_scores: dict[str, int] = {}
     interview_sessions: int = 0
     preferred_style: str = ""
+    explained_topics: list[ExplainedTopic] = []
 
 
 class ConversationTurn(BaseModel):
@@ -47,6 +54,7 @@ class MemoryUpdate(BaseModel):
     strong_areas: list[str] = []
     session_note: str = ""
     interview_score: Optional[int] = None
+    explained_topics: list[ExplainedTopic] = []
 
 
 class AgentResponse(BaseModel):
