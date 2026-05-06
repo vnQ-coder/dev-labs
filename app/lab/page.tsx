@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import ConceptPage from '@/components/ConceptPage';
+import BehindTheScenesPage from '@/components/BehindTheScenesPage';
 import RealWorldView from '@/components/RealWorldView';
 import Quiz from '@/components/Quiz';
 import MobileTopBar from '@/components/MobileTopBar';
@@ -34,6 +35,7 @@ function LabContent() {
   function renderMain() {
     if (view === 'quiz') return <Quiz />;
     if (view === 'realworld') return <RealWorldView />;
+    if (concept && concept.cat === 'networking') return <BehindTheScenesPage concept={concept} />;
     if (concept) return <ConceptPage concept={concept} />;
     return <WelcomeScreen onOpenPalette={() => setPaletteOpen(true)} />;
   }

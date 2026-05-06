@@ -50,6 +50,20 @@ export interface ConceptInterview {
   fu: string[];
 }
 
+export interface PipelineStep {
+  label: string;
+  sublabel?: string;
+  icon: string;
+  simple: string;
+  deep: string;
+}
+
+export interface DebugCommand {
+  label: string;
+  cmd: string;
+  what: string;
+}
+
 export interface Concept {
   id: string;
   cat: string;
@@ -65,6 +79,11 @@ export interface Concept {
   a: ConceptAnalogy;
   te: ConceptTechnical;
   interview: ConceptInterview;
+  // Behind the Scenes journey fields
+  hook?: string;
+  simpleExplain?: string;
+  pipeline?: PipelineStep[];
+  commands?: DebugCommand[];
 }
 
 export interface NFReq {
