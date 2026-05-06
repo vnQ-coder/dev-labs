@@ -17,6 +17,8 @@ class MemorySummary(BaseModel):
     interview_sessions: int = 0
     preferred_style: str = ""
     explained_topics: list[ExplainedTopic] = []
+    display_name: str = ""
+    target_role: str = ""
 
 
 class ConversationTurn(BaseModel):
@@ -25,8 +27,8 @@ class ConversationTurn(BaseModel):
 
 
 class AgentRequest(BaseModel):
-    mode: Literal["ask", "interview", "quiz", "debug", "threeam"] = "ask"
-    message: str = Field(..., min_length=1, max_length=600)
+    mode: Literal["ask", "interview", "quiz", "debug", "threeam", "onboard", "path_greeting"] = "ask"
+    message: str = Field(..., min_length=1, max_length=2000)
     concept_id: Optional[str] = None
     memory: Optional[MemorySummary] = None
     history: list[ConversationTurn] = Field(default=[], max_length=6)
