@@ -6,6 +6,9 @@ import { motion } from 'framer-motion';
 import { FlaskConical } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { CONCEPTS } from '@/lib/data/concepts';
+import { useState, useEffect } from 'react';
+import { OnboardingModal } from '@/components/OnboardingModal';
+import { loadProfile } from '@/lib/profile';
 
 const fadeUp = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -15,6 +18,13 @@ const fadeUp = (delay: number) => ({
 
 export default function Hero() {
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const profile = loadProfile();
+    if (!profile) setShowOnboarding(true);
+  }, []);
+
   const allTitles = CONCEPTS.map(c => c.title);
   const tickerItems = [...allTitles, ...allTitles];
 
@@ -247,6 +257,10 @@ export default function Hero() {
           50% { transform: scale(2.2); opacity: 0.3; }
         }
       `}</style>
+
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
     </div>
   );
 }
