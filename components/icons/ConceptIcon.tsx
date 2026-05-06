@@ -7,6 +7,7 @@ import {
   FlaskConical, Search, Trophy, Sun, Moon, Lightbulb,
   CheckCircle2, XCircle, Copy, Check, ChevronLeft,
   ChevronRight, X, Menu, BookOpen, ChevronDown,
+  Layers, Bug,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -41,6 +42,13 @@ const CONCEPT_ICONS: Record<string, LucideIcon> = {
   route53:            MapPin,
   cloudflare:         Globe2,
   cloudfront:         CloudLightning,
+  'url-journey':      Globe,
+  'dns-explained':    Search,
+  'osi-tcp':          Layers,
+  'https-tls':        Lock,
+  'reverse-proxy':    ArrowLeftRight,
+  'cdn-explained':    CloudLightning,
+  'debug-network':    Bug,
 };
 
 interface ConceptIconProps {
