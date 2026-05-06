@@ -1,0 +1,125 @@
+<h2>How should each journey present its steps?</h2>
+<p class="subtitle">Each "Behind the Scenes" story (e.g. "What happens when you type a URL") has 8–12 steps. Which format keeps users most engaged?</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px;">
+
+  <!-- Option A: Scrollable Timeline -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding:16px;background:#0d1117;">
+      <!-- Mockup of timeline -->
+      <div style="font-size:11px;color:#8b949e;margin-bottom:8px;letter-spacing:0.05em;text-transform:uppercase;">A — Scrollable Timeline</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <div style="width:22px;height:22px;border-radius:50%;background:#22d3ee22;border:1.5px solid #22d3ee55;display:flex;align-items:center;justify-content:center;font-size:9px;color:#22d3ee;font-weight:700;">1</div>
+            <div style="width:1px;height:24px;background:#22d3ee22;"></div>
+          </div>
+          <div style="padding-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#e6edf3;margin-bottom:3px;">Browser Cache Check</div>
+            <div style="font-size:9px;color:#8b949e;line-height:1.5;">Checks local DNS cache, OS hosts file, browser cache before any network request goes out...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <div style="width:22px;height:22px;border-radius:50%;background:#22d3ee22;border:1.5px solid #22d3ee55;display:flex;align-items:center;justify-content:center;font-size:9px;color:#22d3ee;font-weight:700;">2</div>
+            <div style="width:1px;height:24px;background:#22d3ee22;"></div>
+          </div>
+          <div style="padding-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#e6edf3;margin-bottom:3px;">DNS Resolution</div>
+            <div style="font-size:9px;color:#8b949e;line-height:1.5;">Recursive resolver walks the DNS tree: Root → .com TLD → youtube.com authoritative...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <div style="width:22px;height:22px;border-radius:50%;background:#22d3ee22;border:1.5px solid #22d3ee55;display:flex;align-items:center;justify-content:center;font-size:9px;color:#22d3ee;font-weight:700;">3</div>
+          </div>
+          <div style="padding-bottom:4px;">
+            <div style="font-size:11px;font-weight:700;color:#e6edf3;margin-bottom:3px;">TCP Handshake</div>
+            <div style="font-size:9px;color:#8b949e;line-height:1.5;">SYN → SYN-ACK → ACK. Three packets before a single byte of HTTP data flows...</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:9px;color:#8b949e;margin-top:4px;">↓ scroll for more steps</div>
+    </div>
+    <div class="card-body">
+      <h3>Scrollable Timeline</h3>
+      <p>All steps visible as you scroll. Numbered connectors show the flow. Readers see the full journey at once.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Accordion Steps -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding:16px;background:#0d1117;">
+      <div style="font-size:11px;color:#8b949e;margin-bottom:8px;letter-spacing:0.05em;text-transform:uppercase;">B — Accordion Chapters</div>
+      <!-- Step rows collapsed -->
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#161b22;border-radius:8px;border:1px solid #22d3ee30;">
+          <span style="font-size:9px;font-weight:700;color:#22d3ee;background:#22d3ee15;padding:2px 6px;border-radius:4px;">01</span>
+          <span style="font-size:10px;font-weight:600;color:#e6edf3;flex:1;">Browser Cache Check</span>
+          <span style="font-size:9px;color:#8b949e;">▼</span>
+        </div>
+        <!-- Expanded one -->
+        <div style="background:#22d3ee08;border-radius:8px;border:1px solid #22d3ee30;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#22d3ee10;">
+            <span style="font-size:9px;font-weight:700;color:#22d3ee;background:#22d3ee20;padding:2px 6px;border-radius:4px;">02</span>
+            <span style="font-size:10px;font-weight:600;color:#22d3ee;flex:1;">DNS Resolution</span>
+            <span style="font-size:9px;color:#22d3ee;">▲</span>
+          </div>
+          <div style="padding:10px;font-size:9px;color:#8b949e;line-height:1.6;">
+            Your ISP's recursive resolver queries: Root nameservers (13 clusters) → .com TLD servers → YouTube's authoritative NS → returns 142.250.x.x with TTL
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#161b22;border-radius:8px;border:1px solid #22d3ee30;">
+          <span style="font-size:9px;font-weight:700;color:#22d3ee;background:#22d3ee15;padding:2px 6px;border-radius:4px;">03</span>
+          <span style="font-size:10px;font-weight:600;color:#e6edf3;flex:1;">TCP Handshake</span>
+          <span style="font-size:9px;color:#8b949e;">▼</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#161b22;border-radius:8px;border:1px solid #22d3ee30;">
+          <span style="font-size:9px;font-weight:700;color:#22d3ee;background:#22d3ee15;padding:2px 6px;border-radius:4px;">04</span>
+          <span style="font-size:10px;font-weight:600;color:#e6edf3;flex:1;">TLS Handshake</span>
+          <span style="font-size:9px;color:#8b949e;">▼</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Accordion Chapters</h3>
+      <p>Collapse/expand each step. Scan all titles first, dive into what interests you. Feels interactive and less overwhelming.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Interactive Step-Through -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding:16px;background:#0d1117;">
+      <div style="font-size:11px;color:#8b949e;margin-bottom:8px;letter-spacing:0.05em;text-transform:uppercase;">C — Step-Through Explorer</div>
+      <!-- Progress bar -->
+      <div style="display:flex;gap:3px;margin-bottom:10px;">
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.4;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.15;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.15;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.15;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.15;"></div>
+        <div style="height:3px;border-radius:2px;background:#22d3ee;flex:1;opacity:0.15;"></div>
+      </div>
+      <div style="font-size:9px;color:#22d3ee;margin-bottom:6px;font-weight:600;">STEP 3 OF 12 — TCP Handshake</div>
+      <div style="background:#161b22;border-radius:8px;padding:10px;border:1px solid #22d3ee25;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:#e6edf3;margin-bottom:5px;">SYN → SYN-ACK → ACK</div>
+        <div style="font-size:9px;color:#8b949e;line-height:1.6;">Before HTTP data flows, TCP establishes a reliable channel. Three packets cross the internet — each taking ~20ms on a transatlantic route. This is why reducing round-trips matters so much for latency.</div>
+      </div>
+      <!-- Nav buttons -->
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:9px;color:#8b949e;padding:5px 10px;background:#161b22;border-radius:6px;border:1px solid #30363d;">← Prev</div>
+        <div style="font-size:8px;color:#8b949e;">3 / 12</div>
+        <div style="font-size:9px;color:#0d1117;padding:5px 10px;background:#22d3ee;border-radius:6px;font-weight:700;">Next →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Step-Through Explorer</h3>
+      <p>One step at a time with a progress bar. Navigate forward/back. Focused and distraction-free, like a guided tour.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:20px;">Click your preferred format — or describe what you'd change in the terminal.</p>

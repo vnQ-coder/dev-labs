@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Sidebar from '@/components/Sidebar';
 import ConceptPage from '@/components/ConceptPage';
 import BehindTheScenesPage from '@/components/BehindTheScenesPage';
@@ -12,6 +13,8 @@ import Quiz from '@/components/Quiz';
 import MobileTopBar from '@/components/MobileTopBar';
 import CommandPalette from '@/components/CommandPalette';
 import { CONCEPTS } from '@/lib/data/concepts';
+
+const MentorPage = dynamic(() => import('@/components/MentorPage'), { ssr: false });
 
 function LabContent() {
   const params = useSearchParams();
@@ -35,6 +38,7 @@ function LabContent() {
   function renderMain() {
     if (view === 'quiz') return <Quiz />;
     if (view === 'realworld') return <RealWorldView />;
+    if (view === 'mentor') return <MentorPage />;
     if (concept && concept.cat === 'networking') return <BehindTheScenesPage concept={concept} />;
     if (concept) return <ConceptPage concept={concept} />;
     return <WelcomeScreen onOpenPalette={() => setPaletteOpen(true)} />;

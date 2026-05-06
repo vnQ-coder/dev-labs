@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { box-sizing:border-box;margin:0;padding:0; }
+  body { background:#0d1117;color:#e6edf3;font-family:'Inter',sans-serif;padding:32px 24px 80px; }
+
+  .page-title { text-align:center;font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:6px; }
+  .page-sub { text-align:center;font-size:13px;color:#8b949e;margin-bottom:36px; }
+
+  .split { display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px; }
+
+  .option {
+    border-radius:12px;overflow:hidden;
+    border:2px solid transparent;cursor:pointer;
+    transition:border-color 0.2s,transform 0.15s,box-shadow 0.2s;
+  }
+  .option:hover { transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .option.selected { border-color:#ffa657;box-shadow:0 0 0 4px rgba(255,166,87,0.15); }
+
+  .opt-header {
+    background:#161b22;border-bottom:1px solid #21262d;
+    padding:10px 14px;display:flex;align-items:center;gap:8px;
+  }
+  .opt-letter {
+    width:20px;height:20px;border-radius:50%;
+    background:rgba(255,166,87,0.12);border:1px solid rgba(255,166,87,0.25);
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;color:#ffa657;flex-shrink:0;
+  }
+  .opt-title { font-size:12px;font-weight:700;color:#f0f6fc; }
+  .opt-sub { font-size:10px;color:#8b949e;margin-left:2px; }
+  .sel-badge {
+    display:none;margin-left:auto;
+    background:#ffa657;color:#0d1117;
+    font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;
+  }
+  .option.selected .sel-badge { display:block; }
+
+  /* ── OPTION A: Multi-color (current system) ── */
+  .mc-preview {
+    background:#0d1117;display:flex;height:300px;
+  }
+  .mc-sidebar {
+    width:170px;flex-shrink:0;background:#161b22;
+    border-right:1px solid #21262d;padding:12px 10px;overflow:hidden;
+  }
+  .mc-logo { display:flex;align-items:center;gap:6px;margin-bottom:12px;padding:0 2px; }
+  .mc-logo-sq { width:20px;height:20px;background:#f0f6fc;border-radius:5px;display:flex;align-items:center;justify-content:center; }
+  .mc-logo-inner { width:9px;height:9px;background:#0d1117;border-radius:2px; }
+  .mc-logo-text { font-size:10px;font-weight:700;color:#f0f6fc; }
+  .mc-search {
+    background:#0d1117;border:1px solid #21262d;border-radius:5px;
+    padding:5px 8px;display:flex;align-items:center;gap:5px;
+    color:#484f58;font-size:9px;margin-bottom:10px;
+  }
+  .mc-cat { font-size:8px;font-weight:700;letter-spacing:0.1em;margin-bottom:5px;padding:0 2px;margin-top:8px; }
+  .mc-item {
+    display:flex;align-items:center;gap:6px;
+    padding:5px 6px;border-radius:5px;
+    font-size:9px;color:#8b949e;margin-bottom:2px;
+  }
+  .mc-item.active { font-weight:600; }
+  .mc-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+  .mc-main { flex:1;padding:14px;overflow:hidden; }
+  .mc-header {
+    display:flex;align-items:center;gap:8px;
+    padding-bottom:10px;border-bottom:1px solid #21262d;margin-bottom:10px;
+  }
+  .mc-icon { width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center; }
+  .mc-icon-sq { width:11px;height:11px;border-radius:2px;opacity:0.8; }
+  .mc-title { font-size:12px;font-weight:700;color:#f0f6fc; }
+  .mc-tag { font-size:9px;color:#484f58; }
+  .mc-tabs { display:flex;gap:0;margin-bottom:10px;border-bottom:1px solid #21262d; }
+  .mc-tab { padding:5px 10px;font-size:8px;font-weight:600;color:#484f58;border-bottom:2px solid transparent;margin-bottom:-1px; }
+  .mc-tab.active { border-bottom-color:currentColor; }
+  .mc-box { background:#161b22;border:1px solid #21262d;border-radius:6px;padding:9px;margin-bottom:6px; }
+  .mc-box-label { font-size:7px;font-weight:700;letter-spacing:0.1em;color:#484f58;margin-bottom:5px; }
+  .mc-box-text { font-size:9px;color:#8b949e;line-height:1.6; }
+  .mc-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }
+  .mc-chip { padding:2px 7px;border-radius:20px;font-size:8px;font-weight:600; }
+
+  /* ── OPTION B: Single Accent (amber/orange) ── */
+  .sa-preview {
+    background:#0d1117;display:flex;height:300px;
+  }
+  .sa-sidebar {
+    width:170px;flex-shrink:0;background:#161b22;
+    border-right:1px solid #21262d;padding:12px 10px;overflow:hidden;
+  }
+  .sa-logo { display:flex;align-items:center;gap:6px;margin-bottom:12px;padding:0 2px; }
+  .sa-logo-sq { width:20px;height:20px;background:#f0f6fc;border-radius:5px;display:flex;align-items:center;justify-content:center; }
+  .sa-logo-inner { width:9px;height:9px;background:#0d1117;border-radius:2px; }
+  .sa-logo-text { font-size:10px;font-weight:700;color:#f0f6fc; }
+  .sa-search {
+    background:#0d1117;border:1px solid #21262d;border-radius:5px;
+    padding:5px 8px;display:flex;align-items:center;gap:5px;
+    color:#484f58;font-size:9px;margin-bottom:10px;
+  }
+  .sa-cat { font-size:8px;font-weight:700;letter-spacing:0.1em;color:#484f58;margin-bottom:5px;padding:0 2px;margin-top:8px; }
+  .sa-item {
+    display:flex;align-items:center;gap:6px;
+    padding:5px 6px;border-radius:5px;
+    font-size:9px;color:#8b949e;margin-bottom:2px;
+  }
+  .sa-item.active { background:rgba(255,166,87,0.07);border:1px solid rgba(255,166,87,0.18);color:#ffa657;font-weight:600; }
+  .sa-dot { width:7px;height:7px;border-radius:50%;background:#30363d;flex-shrink:0; }
+  .sa-item.active .sa-dot { background:#ffa657; }
+  .sa-main { flex:1;padding:14px;overflow:hidden; }
+  .sa-header {
+    display:flex;align-items:center;gap:8px;
+    padding-bottom:10px;border-bottom:1px solid #21262d;margin-bottom:10px;
+  }
+  .sa-icon { width:26px;height:26px;border-radius:7px;background:rgba(255,166,87,0.08);border:1px solid rgba(255,166,87,0.2);display:flex;align-items:center;justify-content:center; }
+  .sa-icon-sq { width:11px;height:11px;border-radius:2px;background:#ffa657;opacity:0.7; }
+  .sa-title { font-size:12px;font-weight:700;color:#f0f6fc; }
+  .sa-tag { font-size:9px;color:#484f58; }
+  .sa-tabs { display:flex;gap:0;margin-bottom:10px;border-bottom:1px solid #21262d; }
+  .sa-tab { padding:5px 10px;font-size:8px;font-weight:600;color:#484f58;border-bottom:2px solid transparent;margin-bottom:-1px; }
+  .sa-tab.active { color:#ffa657;border-bottom-color:#ffa657; }
+  .sa-box { background:#161b22;border:1px solid #21262d;border-radius:6px;padding:9px;margin-bottom:6px; }
+  .sa-box-label { font-size:7px;font-weight:700;letter-spacing:0.1em;color:#484f58;margin-bottom:5px; }
+  .sa-box-text { font-size:9px;color:#8b949e;line-height:1.6; }
+  .sa-chips { display:flex;flex-wrap:wrap;gap:4px;margin-top:8px; }
+  .sa-chip { padding:2px 7px;border-radius:20px;font-size:8px;font-weight:600;background:rgba(255,166,87,0.07);border:1px solid rgba(255,166,87,0.15);color:#ffa657; }
+
+  /* light mode previews */
+  .split-light { display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px; }
+
+  .mc-light { background:#f6f8fa;display:flex;height:200px; }
+  .mc-light-sb {
+    width:150px;flex-shrink:0;background:#fff;
+    border-right:1px solid #e1e4e8;padding:10px;
+  }
+  .mc-light-main { flex:1;padding:12px;background:#f6f8fa; }
+
+  .sa-light { background:#f6f8fa;display:flex;height:200px; }
+  .sa-light-sb {
+    width:150px;flex-shrink:0;background:#fff;
+    border-right:1px solid #e1e4e8;padding:10px;
+  }
+  .sa-light-main { flex:1;padding:12px;background:#f6f8fa; }
+
+  /* comparison table */
+  .compare {
+    border:1px solid #21262d;border-radius:10px;overflow:hidden;margin-bottom:32px;
+  }
+  .compare-head {
+    background:#161b22;border-bottom:1px solid #21262d;
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+  }
+  .compare-head div { padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:#8b949e; }
+  .compare-row {
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+    border-bottom:1px solid #21262d;
+  }
+  .compare-row:last-child { border-bottom:none; }
+  .compare-row div { padding:8px 12px;font-size:10px;color:#8b949e;line-height:1.5; }
+  .compare-row .aspect { color:#f0f6fc;font-weight:600; }
+  .compare-row .pro-a { color:#57d38d; }
+  .compare-row .pro-b { color:#ffa657; }
+
+  /* bottom bar */
+  #bar { position:fixed;bottom:0;left:0;right:0;background:rgba(13,17,23,0.96);backdrop-filter:blur(12px);border-top:1px solid #21262d;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;transform:translateY(100%);transition:transform 0.3s;z-index:100; }
+  #bar.on { transform:translateY(0); }
+  #bar-text { font-size:13px;color:#f0f6fc;font-weight:600; }
+  #bar-btn { background:#ffa657;color:#0d1117;border:none;border-radius:7px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer; }
+</style>
+</head>
+<body>
+
+<p class="page-title">Color System — Multi-color vs Single Accent</p>
+<p class="page-sub">This affects every category badge, concept icon, sidebar item, and section header across the whole app.</p>
+
+<div class="split">
+
+  <!-- OPTION A: Multi-color -->
+  <div class="option" onclick="pick(this,'multi','A — Keep multi-color categories')">
+    <div class="opt-header">
+      <div class="opt-letter">A</div>
+      <div>
+        <span class="opt-title">Multi-color categories</span>
+        <span class="opt-sub"> — each category has its own color</span>
+      </div>
+      <span class="sel-badge">✓ Selected</span>
+    </div>
+    <div class="mc-preview">
+      <div class="mc-sidebar">
+        <div class="mc-logo"><div class="mc-logo-sq"><div class="mc-logo-inner"></div></div><span class="mc-logo-text">System Design</span></div>
+        <div class="mc-search">Search…</div>
+        <div class="mc-cat" style="color:#38bdf8">FOUNDATION</div>
+        <div class="mc-item active" style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.18);color:#38bdf8;">
+          <div class="mc-dot" style="background:#38bdf8;"></div>Load Balancer
+        </div>
+        <div class="mc-item"><div class="mc-dot" style="background:#38bdf8;opacity:0.4"></div>API Gateway</div>
+        <div class="mc-cat" style="color:#34d399">PERFORMANCE</div>
+        <div class="mc-item"><div class="mc-dot" style="background:#34d399;opacity:0.5"></div>Caching</div>
+        <div class="mc-item"><div class="mc-dot" style="background:#34d399;opacity:0.5"></div>CDN</div>
+        <div class="mc-cat" style="color:#a78bfa">DATA</div>
+        <div class="mc-item"><div class="mc-dot" style="background:#a78bfa;opacity:0.5"></div>Sharding</div>
+        <div class="mc-item"><div class="mc-dot" style="background:#a78bfa;opacity:0.5"></div>Databases</div>
+        <div class="mc-cat" style="color:#f87171">RELIABILITY</div>
+        <div class="mc-item"><div class="mc-dot" style="background:#f87171;opacity:0.5"></div>Circuit Breaker</div>
+      </div>
+      <div class="mc-main">
+        <div class="mc-header">
+          <div class="mc-icon" style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);">
+            <div class="mc-icon-sq" style="background:#38bdf8;"></div>
+          </div>
+          <div><div class="mc-title">Load Balancer</div><div class="mc-tag" style="color:#38bdf8;">Foundation</div></div>
+        </div>
+        <div class="mc-tabs">
+          <div class="mc-tab active" style="color:#38bdf8;border-bottom-color:#38bdf8;">Overview</div>
+          <div class="mc-tab">Analogy</div>
+          <div class="mc-tab">Diagram</div>
+          <div class="mc-tab">Interview</div>
+        </div>
+        <div class="mc-box">
+          <div class="mc-box-label">OVERVIEW</div>
+          <div class="mc-box-text">Distributes incoming requests across backend servers to prevent bottlenecks.</div>
+        </div>
+        <div class="mc-box">
+          <div class="mc-box-label">TYPES</div>
+          <div class="mc-chips">
+            <div class="mc-chip" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:#38bdf8;">Round Robin</div>
+            <div class="mc-chip" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:#38bdf8;">Least Conn</div>
+            <div class="mc-chip" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:#38bdf8;">IP Hash</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B: Single accent -->
+  <div class="option" onclick="pick(this,'single','B — Single amber/orange accent')">
+    <div class="opt-header">
+      <div class="opt-letter">B</div>
+      <div>
+        <span class="opt-title">Single amber accent</span>
+        <span class="opt-sub"> — one color, max contrast, editorial precision</span>
+      </div>
+      <span class="sel-badge">✓ Selected</span>
+    </div>
+    <div class="sa-preview">
+      <div class="sa-sidebar">
+        <div class="sa-logo"><div class="sa-logo-sq"><div class="sa-logo-inner"></div></div><span class="sa-logo-text">System Design</span></div>
+        <div class="sa-search">Search…</div>
+        <div class="sa-cat">FOUNDATION</div>
+        <div class="sa-item active"><div class="sa-dot"></div>Load Balancer</div>
+        <div class="sa-item"><div class="sa-dot"></div>API Gateway</div>
+        <div class="sa-cat">PERFORMANCE</div>
+        <div class="sa-item"><div class="sa-dot"></div>Caching</div>
+        <div class="sa-item"><div class="sa-dot"></div>CDN</div>
+        <div class="sa-cat">DATA</div>
+        <div class="sa-item"><div class="sa-dot"></div>Sharding</div>
+        <div class="sa-item"><div class="sa-dot"></div>Databases</div>
+        <div class="sa-cat">RELIABILITY</div>
+        <div class="sa-item"><div class="sa-dot"></div>Circuit Breaker</div>
+      </div>
+      <div class="sa-main">
+        <div class="sa-header">
+          <div class="sa-icon"><div class="sa-icon-sq"></div></div>
+          <div><div class="sa-title">Load Balancer</div><div class="sa-tag">Foundation</div></div>
+        </div>
+        <div class="sa-tabs">
+          <div class="sa-tab active">Overview</div>
+          <div class="sa-tab">Analogy</div>
+          <div class="sa-tab">Diagram</div>
+          <div class="sa-tab">Interview</div>
+        </div>
+        <div class="sa-box">
+          <div class="sa-box-label">OVERVIEW</div>
+          <div class="sa-box-text">Distributes incoming requests across backend servers to prevent bottlenecks.</div>
+        </div>
+        <div class="sa-box">
+          <div class="sa-box-label">TYPES</div>
+          <div class="sa-chips">
+            <div class="sa-chip">Round Robin</div>
+            <div class="sa-chip">Least Conn</div>
+            <div class="sa-chip">IP Hash</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Light mode previews -->
+<p style="font-size:11px;color:#8b949e;margin-bottom:12px;font-weight:600;letter-spacing:0.06em;">LIGHT MODE COMPARISON</p>
+<div class="split-light">
+  <!-- A light -->
+  <div style="border-radius:10px;overflow:hidden;border:1px solid #21262d;">
+    <div class="mc-light">
+      <div class="mc-light-sb">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px;">
+          <div style="width:16px;height:16px;background:#1a1a1a;border-radius:4px;"></div>
+          <span style="font-size:9px;font-weight:700;color:#1a1a1a;">System Design</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#38bdf8;margin-bottom:4px;">FOUNDATION</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:4px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#38bdf8;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#0369a1;font-weight:600;">Load Balancer</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#38bdf8;opacity:0.4;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">API Gateway</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#34d399;margin-bottom:4px;margin-top:6px;">PERFORMANCE</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#34d399;opacity:0.5;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">Caching</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#a78bfa;margin-bottom:4px;margin-top:6px;">DATA</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#a78bfa;opacity:0.5;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">Sharding</span>
+        </div>
+      </div>
+      <div class="mc-light-main">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e1e4e8;">
+          <div style="width:22px;height:22px;border-radius:6px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);display:flex;align-items:center;justify-content:center;">
+            <div style="width:9px;height:9px;border-radius:2px;background:#0369a1;opacity:0.7;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Load Balancer</div>
+            <div style="font-size:8px;color:#38bdf8;">Foundation</div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #e1e4e8;border-radius:5px;padding:8px;">
+          <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px;">OVERVIEW</div>
+          <div style="font-size:9px;color:#374151;line-height:1.6;">Distributes incoming requests across backend servers.</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;">
+          <div style="padding:2px 6px;border-radius:20px;font-size:8px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:#0369a1;font-weight:600;">Round Robin</div>
+          <div style="padding:2px 6px;border-radius:20px;font-size:8px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:#0369a1;font-weight:600;">Least Conn</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#f6f8fa;border-top:1px solid #e1e4e8;padding:8px 12px;">
+      <span style="font-size:10px;font-weight:600;color:#374151;">A — Multi-color light</span>
+      <span style="font-size:10px;color:#6b7280;"> · Category colors preserved</span>
+    </div>
+  </div>
+
+  <!-- B light -->
+  <div style="border-radius:10px;overflow:hidden;border:1px solid #21262d;">
+    <div class="sa-light">
+      <div class="sa-light-sb">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px;">
+          <div style="width:16px;height:16px;background:#1a1a1a;border-radius:4px;"></div>
+          <span style="font-size:9px;font-weight:700;color:#1a1a1a;">System Design</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px;">FOUNDATION</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:4px;background:rgba(209,120,68,0.08);border:1px solid rgba(209,120,68,0.2);margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#d17844;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#92400e;font-weight:600;">Load Balancer</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#d1d5db;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">API Gateway</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px;margin-top:6px;">PERFORMANCE</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#d1d5db;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">Caching</span>
+        </div>
+        <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px;margin-top:6px;">DATA</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:4px 5px;margin-bottom:3px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#d1d5db;flex-shrink:0;"></div>
+          <span style="font-size:8px;color:#6b7280;">Sharding</span>
+        </div>
+      </div>
+      <div class="sa-light-main">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e1e4e8;">
+          <div style="width:22px;height:22px;border-radius:6px;background:rgba(209,120,68,0.1);border:1px solid rgba(209,120,68,0.2);display:flex;align-items:center;justify-content:center;">
+            <div style="width:9px;height:9px;border-radius:2px;background:#d17844;opacity:0.8;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Load Balancer</div>
+            <div style="font-size:8px;color:#9ca3af;">Foundation</div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #e1e4e8;border-radius:5px;padding:8px;">
+          <div style="font-size:7px;font-weight:700;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px;">OVERVIEW</div>
+          <div style="font-size:9px;color:#374151;line-height:1.6;">Distributes incoming requests across backend servers.</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;">
+          <div style="padding:2px 6px;border-radius:20px;font-size:8px;background:rgba(209,120,68,0.08);border:1px solid rgba(209,120,68,0.18);color:#92400e;font-weight:600;">Round Robin</div>
+          <div style="padding:2px 6px;border-radius:20px;font-size:8px;background:rgba(209,120,68,0.08);border:1px solid rgba(209,120,68,0.18);color:#92400e;font-weight:600;">Least Conn</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#f6f8fa;border-top:1px solid #e1e4e8;padding:8px 12px;">
+      <span style="font-size:10px;font-weight:600;color:#374151;">B — Single accent light</span>
+      <span style="font-size:10px;color:#6b7280;"> · Calm, readable, editorial</span>
+    </div>
+  </div>
+</div>
+
+<!-- Comparison table -->
+<div class="compare">
+  <div class="compare-head">
+    <div>ASPECT</div>
+    <div style="color:#57d38d;">A — Multi-color</div>
+    <div style="color:#ffa657;">B — Single accent</div>
+  </div>
+  <div class="compare-row">
+    <div class="aspect">Visual identity</div>
+    <div class="pro-a">Rich, each category feels distinct</div>
+    <div class="pro-b">Cohesive, premium brand feel</div>
+  </div>
+  <div class="compare-row">
+    <div class="aspect">Readability</div>
+    <div>Color-coded = faster scanning</div>
+    <div class="pro-b">Less visual noise, more focus on content</div>
+  </div>
+  <div class="compare-row">
+    <div class="aspect">Light mode</div>
+    <div>Works but can feel busy</div>
+    <div class="pro-b">Cleaner — warm cream + amber = beautiful</div>
+  </div>
+  <div class="compare-row">
+    <div class="aspect">FAANG feel</div>
+    <div>Colorful (Jira / Atlassian vibe)</div>
+    <div class="pro-b">Linear / Vercel precision</div>
+  </div>
+  <div class="compare-row">
+    <div class="aspect">Impl. effort</div>
+    <div class="pro-a">Low — just update existing tokens</div>
+    <div>Low — simplify existing system</div>
+  </div>
+</div>
+
+<div id="bar">
+  <span id="bar-text"></span>
+  <button id="bar-btn" onclick="confirm()">Lock In →</button>
+</div>
+
+<script>
+let sel = null, selName = null;
+function pick(el, id, name) {
+  document.querySelectorAll('.option').forEach(e => e.classList.remove('selected'));
+  if (sel === id) { sel = null; selName = null; document.getElementById('bar').classList.remove('on'); return; }
+  el.classList.add('selected');
+  sel = id; selName = name;
+  document.getElementById('bar').classList.add('on');
+  document.getElementById('bar-text').textContent = 'Selected: ' + name;
+  try { fetch('/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'click',choice:id,text:name,timestamp:Date.now()})}); } catch(e){}
+}
+function confirm() {
+  if (!sel) return;
+  try { fetch('/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'confirm',choices:[sel],names:[selName],timestamp:Date.now()})}); } catch(e){}
+  document.getElementById('bar-btn').textContent = '✓ Locked In!';
+  document.getElementById('bar-btn').style.background = '#57d38d';
+}
+</script>
+</body>
+</html>

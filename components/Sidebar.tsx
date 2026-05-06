@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  FlaskConical, Search, Globe as GlobeIcon, Trophy, BookOpen,
+  FlaskConical, Search, Globe as GlobeIcon, Trophy, BookOpen, Sparkles,
 } from 'lucide-react';
 import { CONCEPTS } from '@/lib/data/concepts';
 import { CATEGORIES } from '@/lib/data/categories';
@@ -260,6 +260,46 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
             </div>
             <span className="text-xs font-medium" style={{ color: currentView === 'quiz' ? '#c97070' : 'var(--tm)' }}>
               Take the Quiz
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate('/lab?view=mentor')}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors"
+            style={{
+              background: currentView === 'mentor' ? 'rgba(52,211,153,0.10)' : 'transparent',
+              border: currentView === 'mentor' ? '1px solid rgba(52,211,153,0.25)' : '1px solid transparent',
+            }}
+            onMouseEnter={e => {
+              if (currentView !== 'mentor') e.currentTarget.style.background = 'var(--s3)';
+            }}
+            onMouseLeave={e => {
+              if (currentView !== 'mentor') e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <div
+              className="flex items-center justify-center rounded-md flex-shrink-0"
+              style={{
+                width: 22, height: 22,
+                background: currentView === 'mentor' ? 'rgba(52,211,153,0.15)' : 'var(--s3)',
+              }}
+            >
+              <Sparkles size={12} strokeWidth={2} color={currentView === 'mentor' ? '#34d399' : 'var(--td)'} />
+            </div>
+            <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: currentView === 'mentor' ? '#34d399' : 'var(--tm)' }}>
+              Axiom Mentor
+              <span
+                className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                style={{
+                  background: currentView === 'mentor' ? 'rgba(52,211,153,0.15)' : 'var(--s3)',
+                  color: currentView === 'mentor' ? '#34d399' : 'var(--td)',
+                  border: currentView === 'mentor' ? '1px solid rgba(52,211,153,0.30)' : '1px solid var(--b0)',
+                  fontSize: 9,
+                  lineHeight: 1,
+                }}
+              >
+                AI
+              </span>
             </span>
           </button>
         </div>

@@ -1,0 +1,62 @@
+<h2>Which journeys should we include?</h2>
+<p class="subtitle">Each is a complete behind-the-scenes walkthrough. Select all that should ship in the first version — or suggest swaps in the terminal.</p>
+
+<div class="options" data-multiselect style="margin-top:20px;">
+
+  <div class="option" data-choice="url" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#22d3ee20;border:1px solid #22d3ee40;color:#22d3ee;">1</div>
+    <div class="content">
+      <h3>You type youtube.com and press Enter</h3>
+      <p>Browser cache → DNS recursive resolution → TCP handshake → TLS 1.3 handshake → HTTP/2 request → CDN edge → load balancer → reverse proxy (Nginx) → app server → response. Plus: EC2 vs EKS vs serverless variants.</p>
+      <p style="margin-top:6px;font-size:11px;color:#22d3ee;">~12 steps · The flagship journey</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="localhost" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#4db89620;border:1px solid #4db89640;color:#4db896;">2</div>
+    <div class="content">
+      <h3>localhost:4000 — your Node.js server</h3>
+      <p>How your OS binds a port → loopback interface (127.0.0.1) → TCP socket → Node.js event loop picks up the connection → your route handler runs → response flows back. Why port &lt;1024 needs sudo. Why two processes can't share a port.</p>
+      <p style="margin-top:6px;font-size:11px;color:#4db896;">~8 steps · Every dev's daily mystery</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="login" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#8b78d420;border:1px solid #8b78d440;color:#8b78d4;">3</div>
+    <div class="content">
+      <h3>You click "Sign in with Google"</h3>
+      <p>OAuth 2.0 authorization code flow → HTTPS keeps it safe → Google issues an auth code → your server exchanges it for tokens → JWT structure (header.payload.signature) → cookie vs. localStorage → session vs. stateless auth. Why you should never roll your own auth.</p>
+      <p style="margin-top:6px;font-size:11px;color:#8b78d4;">~9 steps · Auth is broken everywhere</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="deploy" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#c9a84c20;border:1px solid #c9a84c40;color:#c9a84c;">4</div>
+    <div class="content">
+      <h3>git push → live in production</h3>
+      <p>Git push triggers webhook → CI runner clones repo → builds Docker image → pushes to ECR → Kubernetes rolling deploy → readiness probe passes → load balancer shifts traffic → old pods terminated. Zero-downtime deploy explained step by step.</p>
+      <p style="margin-top:6px;font-size:11px;color:#c9a84c;">~10 steps · The deploy pipeline most devs never see</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="query" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#c9707020;border:1px solid #c9707040;color:#c97070;">5</div>
+    <div class="content">
+      <h3>SELECT * FROM users WHERE id = 42</h3>
+      <p>Connection pool checkout → query parser → planner picks an index scan vs. full table scan → B-tree walk → buffer pool (avoid disk if cached) → row fetch → serialisation → result set back to app. Why N+1 queries kill performance.</p>
+      <p style="margin-top:6px;font-size:11px;color:#c97070;">~9 steps · What actually makes queries slow</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="upload" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#5ba3c920;border:1px solid #5ba3c940;color:#5ba3c9;">6</div>
+    <div class="content">
+      <h3>You upload a photo to Instagram</h3>
+      <p>Browser multipart/form-data → server receives stream → generates presigned S3 URL → direct browser-to-S3 upload (bypassing your server) → S3 triggers Lambda → image resized to 4 variants → CloudFront CDN invalidated → URL stored in DB.</p>
+      <p style="margin-top:6px;font-size:11px;color:#5ba3c9;">~10 steps · Event-driven serverless in the real world</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Select the ones to include (multi-select). All 6 is fine — or trim to 4-5. Confirm in the terminal when ready.</p>

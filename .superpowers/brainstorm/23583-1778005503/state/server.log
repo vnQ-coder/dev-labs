@@ -1,0 +1,7 @@
+{"type":"server-started","port":50239,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50239","screen_dir":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content","state_dir":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/state"}
+{"type":"screen-added","file":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content/design-direction.html"}
+{"type":"screen-added","file":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content/design-variants.html"}
+{"type":"screen-added","file":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content/hero-variants.html"}
+{"type":"screen-added","file":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content/color-system.html"}
+{"type":"screen-added","file":"/Users/muhammadjamil/Desktop/practice/system-design-app/.superpowers/brainstorm/23583-1778005503/content/icon-style.html"}
+{"type":"server-stopped","reason":"idle timeout"}

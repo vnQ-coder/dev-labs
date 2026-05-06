@@ -1,0 +1,75 @@
+<h2>What AI Agent Should We Build?</h2>
+<p class="subtitle">Deep codebase analysis complete — 44 concepts, 8 categories, 11 real-world systems. Here's what's possible with Google Gemini's free tier.</p>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 20px;">
+  <div style="padding:12px 14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#818cf8;">44</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">Concepts across 8 categories</div>
+  </div>
+  <div style="padding:12px 14px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#34d399;">16</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">Hardcoded quiz questions</div>
+  </div>
+  <div style="padding:12px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#fbbf24;">11</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">Real-world system designs</div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-bottom:14px;">Pick the AI agent direction that excites you most. You can pick more than one.</p>
+
+<div class="options" data-multiselect>
+
+  <div class="option" data-choice="interview-coach" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>🎤 AI Interview Coach</h3>
+      <p>The app already has interview Q&amp;A for every concept. The AI conducts a <strong>live mock system design interview</strong> — you answer, it evaluates your depth, spots gaps ("you missed sharding"), and scores you. Fills the biggest gap: the app teaches but never tests <em>how well you can explain</em>.</p>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.2);">Uses existing interview data as context</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.2);">~500 tokens/session — very free-tier friendly</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="quiz-generator" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>🧠 AI Quiz Generator</h3>
+      <p>The current quiz has only 16 static questions. An AI agent generates <strong>infinite, adaptive questions</strong> based on which concepts you've viewed, where you struggled, and the difficulty level you want. Questions get harder as you improve. Never the same quiz twice.</p>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.2);">Reads your progress from localStorage</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);">Generates MCQ + scenario-based questions</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="concept-tutor" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>💬 AI Concept Tutor</h3>
+      <p>A chat panel on every concept page. Ask anything: <em>"How does etcd compare to ZooKeeper?"</em> while reading Kubernetes. The AI has the full concept loaded as context and answers specifically — not generically. Like having a senior engineer sitting next to you.</p>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.2);">Context-aware per concept page</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);">Higher token usage (ongoing chat)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="design-evaluator" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>📐 AI System Design Evaluator</h3>
+      <p>User describes their system design approach in free text. The AI evaluates it against the real-world systems in the app — <em>"Your Netflix design is missing the CDN layer. Here's how the real Netflix handles this..."</em> Bridges the gap between reading and actually designing.</p>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.2);">Uses 11 real-world system designs as reference</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.2);">Most unique differentiator</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;padding:12px 16px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:10px;font-size:12px;color:#64748b;line-height:1.6;">
+  <strong style="color:#38bdf8;">Google Gemini Free Tier</strong> — Gemini 2.0 Flash: 1,500 requests/day, 1M tokens/minute at zero cost. More than enough for all options above. The <code>@google/generative-ai</code> SDK drops into Next.js as an API route in minutes.
+</div>

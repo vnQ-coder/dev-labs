@@ -1,0 +1,220 @@
+<h2>Behind the Scenes — Full Module Design</h2>
+<p class="subtitle">Here's how the complete module looks. Review each section and tell me if anything should change.</p>
+
+<div class="section">
+  <div class="label">SIDEBAR ENTRY</div>
+  <div class="mockup">
+    <div class="mockup-header">Sidebar footer (below Quiz button)</div>
+    <div class="mockup-body" style="background:#0d1117;padding:12px;">
+      <!-- existing items -->
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:transparent;margin-bottom:2px;">
+        <div style="width:22px;height:22px;background:#161b22;border-radius:5px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;">🌍</span>
+        </div>
+        <span style="font-size:11px;color:#8b949e;">Real World Systems</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:transparent;margin-bottom:2px;">
+        <div style="width:22px;height:22px;background:#161b22;border-radius:5px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;">🏆</span>
+        </div>
+        <span style="font-size:11px;color:#8b949e;">Take the Quiz</span>
+      </div>
+      <!-- NEW item — highlighted -->
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(139,120,212,0.12);border:1px solid rgba(139,120,212,0.25);margin-top:4px;">
+        <div style="width:22px;height:22px;background:rgba(139,120,212,0.2);border-radius:5px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:#8b78d4;">⚡</span>
+        </div>
+        <span style="font-size:11px;color:#8b78d4;font-weight:600;">Behind the Scenes</span>
+        <span style="font-size:9px;color:#8b78d4;background:rgba(139,120,212,0.2);padding:1px 5px;border-radius:4px;margin-left:auto;">NEW</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">JOURNEY GRID (the landing page)</div>
+  <div class="mockup">
+    <div class="mockup-header">Behind the Scenes — 6 journeys</div>
+    <div class="mockup-body" style="background:#0d1117;padding:16px;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:16px;font-weight:900;color:#e6edf3;margin-bottom:4px;">Behind the Scenes</div>
+        <div style="font-size:11px;color:#8b949e;">The invisible infrastructure that runs every app you use. Understanding this is what makes you hireable.</div>
+      </div>
+      <!-- 3-col grid preview -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <!-- Card 1 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #22d3ee25;">
+          <div style="font-size:18px;margin-bottom:6px;">🌐</div>
+          <div style="font-size:11px;font-weight:700;color:#22d3ee;margin-bottom:3px;">You type a URL</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">DNS → TCP → TLS → HTTP → CDN → Nginx → your code</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#22d3ee15;color:#22d3ee;padding:1px 5px;border-radius:3px;">12 steps</span>
+            <span style="font-size:8px;background:#161b22;color:#8b949e;padding:1px 5px;border-radius:3px;border:1px solid #30363d;">Flagship</span>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #4db89625;">
+          <div style="font-size:18px;margin-bottom:6px;">💻</div>
+          <div style="font-size:11px;font-weight:700;color:#4db896;margin-bottom:3px;">localhost:4000</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">Port binding → TCP socket → Node.js event loop</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#4db89615;color:#4db896;padding:1px 5px;border-radius:3px;">8 steps</span>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #8b78d425;">
+          <div style="font-size:18px;margin-bottom:6px;">🔐</div>
+          <div style="font-size:11px;font-weight:700;color:#8b78d4;margin-bottom:3px;">Sign in with Google</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">OAuth 2.0 → JWT → cookie vs token</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#8b78d415;color:#8b78d4;padding:1px 5px;border-radius:3px;">9 steps</span>
+          </div>
+        </div>
+        <!-- Card 4 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #c9a84c25;">
+          <div style="font-size:18px;margin-bottom:6px;">🚀</div>
+          <div style="font-size:11px;font-weight:700;color:#c9a84c;margin-bottom:3px;">git push → production</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">CI/CD → Docker → K8s rolling deploy</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#c9a84c15;color:#c9a84c;padding:1px 5px;border-radius:3px;">10 steps</span>
+          </div>
+        </div>
+        <!-- Card 5 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #c9707025;">
+          <div style="font-size:18px;margin-bottom:6px;">🗄️</div>
+          <div style="font-size:11px;font-weight:700;color:#c97070;margin-bottom:3px;">SELECT * WHERE id=42</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">Connection pool → query planner → B-tree → disk</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#c9707015;color:#c97070;padding:1px 5px;border-radius:3px;">9 steps</span>
+          </div>
+        </div>
+        <!-- Card 6 -->
+        <div style="background:#161b22;border-radius:10px;padding:12px;border:1px solid #5ba3c925;">
+          <div style="font-size:18px;margin-bottom:6px;">📸</div>
+          <div style="font-size:11px;font-weight:700;color:#5ba3c9;margin-bottom:3px;">Upload a photo</div>
+          <div style="font-size:9px;color:#8b949e;line-height:1.5;margin-bottom:6px;">Presigned URL → S3 → Lambda → CDN invalidation</div>
+          <div style="display:flex;gap:3px;">
+            <span style="font-size:8px;background:#5ba3c915;color:#5ba3c9;padding:1px 5px;border-radius:3px;">10 steps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">JOURNEY DETAIL PAGE — The timeline</div>
+  <div class="mockup">
+    <div class="mockup-header">Journey: "You type youtube.com and press Enter"</div>
+    <div class="mockup-body" style="background:#0d1117;padding:16px;max-height:420px;overflow-y:auto;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#22d3ee0d,#161b22);border:1px solid #22d3ee22;border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:9px;color:#22d3ee;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">BEHIND THE SCENES</div>
+        <div style="font-size:15px;font-weight:900;color:#e6edf3;margin-bottom:4px;">You type youtube.com and press Enter</div>
+        <div style="font-size:10px;color:#8b949e;line-height:1.5;margin-bottom:10px;">From keypress to rendered page — 12 layers of infrastructure firing in under 300ms.</div>
+        <div style="display:flex;gap:6px;">
+          <span style="font-size:9px;background:#22d3ee15;color:#22d3ee;padding:2px 8px;border-radius:4px;border:1px solid #22d3ee25;">12 steps</span>
+          <span style="font-size:9px;background:#161b22;color:#8b949e;padding:2px 8px;border-radius:4px;border:1px solid #30363d;">~8 min read</span>
+          <span style="font-size:9px;background:rgba(201,112,112,0.1);color:#c97070;padding:2px 8px;border-radius:4px;border:1px solid rgba(201,112,112,0.25);">#1 interview question</span>
+        </div>
+      </div>
+
+      <!-- Timeline steps -->
+      <!-- Step 1 -->
+      <div style="display:flex;gap:12px;margin-bottom:0;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#22d3ee15;border:1.5px solid #22d3ee35;display:flex;align-items:center;justify-content:center;font-size:10px;color:#22d3ee;font-weight:800;font-family:monospace;">1</div>
+          <div style="width:1px;background:#22d3ee18;flex:1;min-height:12px;"></div>
+        </div>
+        <div style="padding-bottom:16px;flex:1;">
+          <div style="font-size:9px;color:#22d3ee;font-weight:700;letter-spacing:0.06em;margin-bottom:3px;">PHASE 1 — BEFORE THE NETWORK</div>
+          <div style="font-size:12px;font-weight:700;color:#e6edf3;margin-bottom:4px;">Browser Cache & OS Hosts File</div>
+          <div style="font-size:10px;color:#8b949e;line-height:1.6;margin-bottom:6px;">Before any network packet leaves your machine, the browser checks 4 caches in order: browser DNS cache (chrome://net-internals/#dns) → OS DNS cache → /etc/hosts file → OS resolver. On a repeated visit, DNS resolves in 0ms — pure cache hit.</div>
+          <!-- Insider callout -->
+          <div style="background:rgba(255,166,87,0.08);border:1px solid rgba(255,166,87,0.2);border-radius:8px;padding:8px 10px;display:flex;gap:6px;">
+            <span style="font-size:10px;flex-shrink:0;">💡</span>
+            <div style="font-size:9px;color:#ffa657;line-height:1.6;"><strong>Senior insight:</strong> Adding <code style="background:#ffffff10;padding:1px 3px;border-radius:3px;">127.0.0.1 api.myapp.local</code> to /etc/hosts is how local HTTPS dev works without running a real DNS server.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="display:flex;gap:12px;margin-bottom:0;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#22d3ee15;border:1.5px solid #22d3ee35;display:flex;align-items:center;justify-content:center;font-size:10px;color:#22d3ee;font-weight:800;font-family:monospace;">2</div>
+          <div style="width:1px;background:#22d3ee18;flex:1;min-height:12px;"></div>
+        </div>
+        <div style="padding-bottom:16px;flex:1;">
+          <div style="font-size:9px;color:#22d3ee;font-weight:700;letter-spacing:0.06em;margin-bottom:3px;">PHASE 2 — DNS RESOLUTION</div>
+          <div style="font-size:12px;font-weight:700;color:#e6edf3;margin-bottom:4px;">The Recursive Resolver Walk</div>
+          <div style="font-size:10px;color:#8b949e;line-height:1.6;margin-bottom:6px;">Your ISP's recursive resolver asks the root nameservers (there are only 13 root server clusters on Earth), which delegate to .com TLD servers, which delegate to YouTube's authoritative nameservers, which return 142.250.x.x with a TTL. The whole walk takes ~50ms if nothing is cached.</div>
+          <!-- Code hint -->
+          <div style="background:#161b22;border-radius:6px;padding:7px 10px;font-family:monospace;font-size:9px;color:#8b949e;border:1px solid #30363d;">
+            <span style="color:#8b949e;">$ </span><span style="color:#e6edf3;">dig +trace youtube.com</span><br>
+            <span style="color:#4db896;">; → root → .com TLD → youtube.com NS → 142.250.80.46</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 abbreviated -->
+      <div style="display:flex;gap:12px;margin-bottom:0;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#22d3ee15;border:1.5px solid #22d3ee35;display:flex;align-items:center;justify-content:center;font-size:10px;color:#22d3ee;font-weight:800;font-family:monospace;">3</div>
+          <div style="width:1px;background:#22d3ee18;flex:1;min-height:12px;"></div>
+        </div>
+        <div style="padding-bottom:16px;flex:1;">
+          <div style="font-size:9px;color:#22d3ee;font-weight:700;letter-spacing:0.06em;margin-bottom:3px;">PHASE 3 — TCP + TLS</div>
+          <div style="font-size:12px;font-weight:700;color:#e6edf3;margin-bottom:4px;">3-Way Handshake → TLS 1.3 in 1-RTT</div>
+          <div style="font-size:10px;color:#8b949e;line-height:1.6;">SYN → SYN-ACK → ACK establishes a reliable channel. Then TLS 1.3 negotiates encryption in a single round-trip (vs. 2 in TLS 1.2). The certificate chain is verified against your OS trust store. HSTS means the browser refuses HTTP even if you type it.</div>
+        </div>
+      </div>
+
+      <!-- Variants section preview -->
+      <div style="background:#161b22;border-radius:10px;border:1px solid #30363d;overflow:hidden;margin-top:4px;">
+        <div style="padding:8px 12px;background:#1c2128;border-bottom:1px solid #30363d;">
+          <div style="font-size:9px;color:#8b949e;font-weight:700;letter-spacing:0.06em;">DEPLOYMENT VARIANTS — where the request lands</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+          <div style="padding:10px;border-right:1px solid #30363d;">
+            <div style="font-size:9px;font-weight:700;color:#c9a84c;margin-bottom:4px;">🖥 EC2 / Bare Metal</div>
+            <div style="font-size:8px;color:#8b949e;line-height:1.5;">Nginx listens on :443 → reverse proxies to Node/Gunicorn on :3000 → your route handler</div>
+          </div>
+          <div style="padding:10px;border-right:1px solid #30363d;">
+            <div style="font-size:9px;font-weight:700;color:#22d3ee;margin-bottom:4px;">☸ EKS / Kubernetes</div>
+            <div style="font-size:8px;color:#8b949e;line-height:1.5;">ALB → Ingress controller → Service (ClusterIP) → Pod → container port</div>
+          </div>
+          <div style="padding:10px;">
+            <div style="font-size:9px;font-weight:700;color:#4db896;margin-bottom:4px;">⚡ Serverless</div>
+            <div style="font-size:8px;color:#8b949e;line-height:1.5;">API Gateway → Lambda cold start (or warm) → your function handler → response</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interview callout -->
+      <div style="margin-top:12px;background:rgba(139,120,212,0.08);border:1px solid rgba(139,120,212,0.25);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:9px;color:#8b78d4;font-weight:700;margin-bottom:4px;">🎯 INTERVIEW ANSWER SCAFFOLD</div>
+        <div style="font-size:10px;color:#8b949e;line-height:1.6;">When asked "walk me through what happens when you type a URL" — start with browser cache, then DNS hierarchy, then TCP+TLS, then HTTP/2 multiplexing, then CDN edge, then load balancer, then reverse proxy. Mention stateful vs stateless. Name the deployment target. Most candidates stop at DNS. You won't.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px;">
+  <div class="label">DOES THIS LOOK RIGHT?</div>
+  <div class="options" style="margin-top:8px;">
+    <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+      <div class="letter" style="background:#4db89620;border:1px solid #4db89640;color:#4db896;">✓</div>
+      <div class="content">
+        <h3>Looks great — write the spec</h3>
+        <p>Sidebar entry, 6-journey grid, scrollable timeline with phase labels, insider notes, code snippets, deployment variants, interview scaffold. Ship it.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter" style="background:#c9a84c20;border:1px solid #c9a84c40;color:#c9a84c;">✎</div>
+      <div class="content">
+        <h3>I have changes</h3>
+        <p>Tell me what to adjust in the terminal and I'll update the design before writing the spec.</p>
+      </div>
+    </div>
+  </div>
+</div>

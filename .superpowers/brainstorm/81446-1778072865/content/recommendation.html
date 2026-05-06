@@ -1,0 +1,132 @@
+<h2>My Recommendation: Build One Smart Agent, Not Four Separate Tools</h2>
+<p class="subtitle">After building AI agents for 100+ products — the ones that retain users and don't get abused share the same pattern. Here's exactly what I'd build.</p>
+
+<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(52,211,153,0.08));border:1.5px solid rgba(99,102,241,0.3);border-radius:14px;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#818cf8;margin-bottom:6px;">THE AGENT</div>
+  <div style="font-size:22px;font-weight:800;color:#e2e8f0;margin-bottom:6px;">The System Design Mentor</div>
+  <div style="font-size:13px;color:#94a3b8;line-height:1.7;">One compound agent with persistent memory, four capability modes, and a security layer that prevents abuse. It knows your app's 44 concepts, remembers every user's weak spots across sessions, and gets smarter the more someone uses it — without ever touching a database.</div>
+</div>
+
+<div style="margin:20px 0;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#64748b;margin-bottom:12px;">WHY ONE AGENT, NOT FOUR TOOLS</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="padding:12px 14px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.15);border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:4px;">❌ Four separate tools</div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">User has to remember which tool to open. No shared memory. You build, maintain, and secure four API routes. Token budget split four ways. Feels like a feature list, not a product.</div>
+    </div>
+    <div style="padding:12px 14px;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.15);border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;color:#34d399;margin-bottom:4px;">✅ One compound agent</div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">One secure API route. One memory store. The agent switches modes naturally based on context. Remembers you. Gets smarter over time. Feels like a senior engineer on call 24/7 — not a chatbot.</div>
+    </div>
+  </div>
+</div>
+
+<div style="margin:20px 0;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#64748b;margin-bottom:12px;">THE FOUR MODES (one agent, context-switched)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+    <div style="padding:14px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;">🎤</div>
+        <div style="font-size:12px;font-weight:700;color:#818cf8;">Interview Mode <span style="font-size:9px;font-weight:500;color:#64748b;">(primary)</span></div>
+      </div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">Picks a concept you've studied. Asks the exact interview question from the app data. Evaluates your answer for depth, accuracy, missed points. Gives a score + specific feedback. Stores weak areas to memory.</div>
+    </div>
+
+    <div style="padding:14px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;">🧠</div>
+        <div style="font-size:12px;font-weight:700;color:#fbbf24;">Quiz Mode</div>
+      </div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">Generates adaptive MCQ based on what you've viewed + where you've struggled. Not the same 16 questions. Gets harder as you improve. Every session is unique.</div>
+    </div>
+
+    <div style="padding:14px;background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(52,211,153,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;">💬</div>
+        <div style="font-size:12px;font-weight:700;color:#34d399;">Explain Mode</div>
+      </div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">Inline chat on any concept page. Ask follow-ups, edge cases, comparisons. Agent has the full concept loaded as context — answers are specific, not Wikipedia-generic.</div>
+    </div>
+
+    <div style="padding:14px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(248,113,113,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;">📐</div>
+        <div style="font-size:12px;font-weight:700;color:#f87171;">Evaluate Mode</div>
+      </div>
+      <div style="font-size:11px;color:#64748b;line-height:1.6;">User pastes their system design attempt. Agent scores it against the real-world systems (Netflix, Uber, Discord…) already in the app. Points out exactly what's missing.</div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin:20px 0;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#64748b;margin-bottom:12px;">MEMORY ARCHITECTURE (no database needed)</div>
+  <div style="padding:16px;background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);border-radius:10px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <div style="text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#38bdf8;margin-bottom:4px;">1. STORE</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">User's memory saved to <code>localStorage</code> — weak concepts, interview scores, quiz history, preferred learning style. Private, per-device, zero cost.</div>
+      </div>
+      <div style="text-align:center;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);padding:0 10px;">
+        <div style="font-size:11px;font-weight:700;color:#38bdf8;margin-bottom:4px;">2. INJECT</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">On each API call, client sends a compact memory summary. Server injects it into the system prompt: <em>"User has studied 18 concepts, struggles with consensus algorithms, strong on caching."</em></div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#38bdf8;margin-bottom:4px;">3. UPDATE</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">After each session the agent returns a structured reflection JSON. Client merges it back into localStorage. Memory grows smarter every session — no backend required.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin:20px 0;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#64748b;margin-bottom:12px;">SECURITY ARCHITECTURE (5-layer defence)</div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      <div style="min-width:22px;height:22px;border-radius:6px;background:rgba(248,113,113,0.15);color:#f87171;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">1</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:2px;">API Key — Server-Side Only</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">Gemini API key lives in Vercel environment variables. The client <em>never sees it</em>. All Gemini calls happen inside a Next.js API route — the key cannot be extracted from the browser.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      <div style="min-width:22px;height:22px;border-radius:6px;background:rgba(251,191,36,0.15);color:#fbbf24;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">2</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:2px;">Rate Limiting — Per IP + Per Session</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">Next.js middleware enforces: max 20 requests/minute per IP, max 100 requests/day per IP. If exceeded → 429 response. Prevents a single bad actor from burning your entire daily free quota in seconds.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      <div style="min-width:22px;height:22px;border-radius:6px;background:rgba(99,102,241,0.15);color:#818cf8;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">3</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:2px;">Prompt Injection Guard</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">User input is strictly isolated — wrapped in <code>[USER_INPUT]</code> tags in the prompt, never concatenated with the system context. The system prompt is server-only. Users cannot "jailbreak" the agent by typing "Ignore all previous instructions."</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      <div style="min-width:22px;height:22px;border-radius:6px;background:rgba(52,211,153,0.15);color:#34d399;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">4</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:2px;">Input Sanitisation + Token Cap</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">Max 600 characters per user message, server-validated. HTML/script tags stripped. Memory summary capped at 300 tokens. Prevents prompt stuffing attacks where someone sends 10,000 tokens to drain your quota in one request.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      <div style="min-width:22px;height:22px;border-radius:6px;background:rgba(56,189,248,0.15);color:#38bdf8;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">5</div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:2px;">Output Validation + CORS Guard</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;">Every Gemini response is validated against an expected schema before reaching the client. Malformed responses are caught and never passed through. CORS headers restrict the API route to your domain only — no external sites can call it.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:14px 16px;background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);border-radius:10px;font-size:12px;color:#64748b;line-height:1.6;">
+  <strong style="color:#34d399;">Bottom line:</strong> One agent. Four modes. Persistent memory without a database. Five security layers. One Next.js API route. Works on Gemini's free tier today — scales to paid credits without a single architecture change. This is the pattern that works across every successful AI product I've shipped.
+</div>

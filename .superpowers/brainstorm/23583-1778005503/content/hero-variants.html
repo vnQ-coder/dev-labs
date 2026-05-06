@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero Variants</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'Inter', sans-serif;
+    padding: 32px 24px 80px;
+  }
+
+  .page-title { text-align:center; font-size:20px; font-weight:700; color:#f0f6fc; margin-bottom:6px; }
+  .page-sub { text-align:center; font-size:13px; color:#8b949e; margin-bottom:36px; }
+
+  .hero-option {
+    border-radius:14px; overflow:hidden;
+    border:2px solid transparent;
+    cursor:pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    margin-bottom:32px;
+    position:relative;
+  }
+  .hero-option:hover { transform:translateY(-2px); box-shadow:0 16px 48px rgba(0,0,0,0.5); }
+  .hero-option.selected { border-color:#ffa657; box-shadow:0 0 0 4px rgba(255,166,87,0.15); }
+
+  .option-label {
+    background:#161b22; border-bottom:1px solid #21262d;
+    padding:10px 16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .opt-num {
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(255,166,87,0.12);border:1px solid rgba(255,166,87,0.3);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#ffa657;
+    flex-shrink:0;
+  }
+  .opt-name { font-size:13px;font-weight:700;color:#f0f6fc; }
+  .opt-desc { font-size:11px;color:#8b949e;margin-left:4px; }
+  .selected-mark {
+    display:none; margin-left:auto;
+    background:#ffa657;color:#0d1117;
+    font-size:10px;font-weight:700;
+    padding:2px 8px;border-radius:20px;
+  }
+  .hero-option.selected .selected-mark { display:block; }
+
+  /* ════════ HERO A: Dramatic / Cinematic ════════ */
+  .hero-a {
+    background:#0d1117;
+    min-height:320px;
+    position:relative;
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Inter',sans-serif;
+  }
+  /* animated grid lines */
+  .hero-a .grid {
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,166,87,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,166,87,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: grid-drift 20s linear infinite;
+  }
+  @keyframes grid-drift {
+    from { background-position: 0 0; }
+    to   { background-position: 40px 40px; }
+  }
+  /* radial vignette */
+  .hero-a .vignette {
+    position:absolute;inset:0;
+    background:radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, #0d1117 90%);
+  }
+  /* floating nodes */
+  .hero-a .node {
+    position:absolute;
+    background:#161b22;
+    border:1px solid #30363d;
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:9px;
+    color:#8b949e;
+    animation:float 6s ease-in-out infinite;
+    white-space:nowrap;
+  }
+  .hero-a .node.accent { border-color:rgba(255,166,87,0.3);color:#ffa657;background:rgba(255,166,87,0.06); }
+  @keyframes float {
+    0%,100% { transform:translateY(0); }
+    50%      { transform:translateY(-8px); }
+  }
+  .hero-a .node:nth-child(3) { animation-delay:0.5s; }
+  .hero-a .node:nth-child(4) { animation-delay:1s; }
+  .hero-a .node:nth-child(5) { animation-delay:1.5s; }
+  .hero-a .node:nth-child(6) { animation-delay:2s; }
+  /* hero content */
+  .hero-a .content {
+    position:relative;z-index:2;
+    text-align:center;
+    padding:20px;
+  }
+  .hero-a .badge {
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,166,87,0.08);border:1px solid rgba(255,166,87,0.2);
+    border-radius:20px;padding:4px 12px;
+    font-size:10px;font-weight:600;color:#ffa657;
+    letter-spacing:0.08em;margin-bottom:20px;
+  }
+  .hero-a .badge-dot {
+    width:6px;height:6px;border-radius:50%;background:#ffa657;
+    animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;
+  }
+  @keyframes ping { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(2);opacity:0.3} }
+  .hero-a h1 {
+    font-size:52px;font-weight:900;line-height:1;letter-spacing:-0.03em;
+    color:#f0f6fc;margin-bottom:16px;
+  }
+  .hero-a h1 span {
+    color:transparent;
+    background:linear-gradient(135deg,#ffa657,#f7cc6a);
+    -webkit-background-clip:text;background-clip:text;
+  }
+  .hero-a p {
+    font-size:14px;color:#8b949e;max-width:420px;margin:0 auto 24px;line-height:1.65;
+  }
+  .hero-a .cta {
+    display:inline-flex;align-items:center;gap:8px;
+    background:#ffa657;color:#0d1117;
+    border:none;border-radius:8px;
+    padding:10px 24px;font-size:13px;font-weight:700;
+    font-family:'Inter',sans-serif;cursor:pointer;
+    transition:background 0.15s,transform 0.15s;
+  }
+  .hero-a .cta:hover { background:#f7cc6a;transform:scale(1.02); }
+  .hero-a .pills {
+    display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:20px;
+  }
+  .hero-a .pill {
+    padding:4px 12px;border-radius:20px;font-size:10px;font-weight:500;
+    border:1px solid #30363d;color:#8b949e;
+    transition:border-color 0.15s,color 0.15s;
+  }
+  .hero-a .pill:hover { border-color:#ffa657;color:#ffa657; }
+
+  /* ════════ HERO B: Editorial / Typographic ════════ */
+  .hero-b {
+    background:#0d1117;
+    min-height:320px;
+    display:flex;
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+  .hero-b .left {
+    flex:1;padding:40px 48px;
+    display:flex;flex-direction:column;justify-content:center;
+    border-right:1px solid #21262d;
+  }
+  .hero-b .eyebrow {
+    font-size:10px;font-weight:700;letter-spacing:0.12em;
+    color:#ffa657;text-transform:uppercase;margin-bottom:16px;
+  }
+  .hero-b h1 {
+    font-size:44px;font-weight:900;line-height:1.05;
+    letter-spacing:-0.03em;color:#f0f6fc;margin-bottom:16px;
+  }
+  .hero-b h1 em {
+    font-style:normal;
+    -webkit-text-stroke:1px #ffa657;color:transparent;
+  }
+  .hero-b p {
+    font-size:13px;color:#8b949e;line-height:1.65;margin-bottom:28px;max-width:360px;
+  }
+  .hero-b .cta-row { display:flex;align-items:center;gap:12px; }
+  .hero-b .cta-primary {
+    background:#ffa657;color:#0d1117;
+    border:none;border-radius:6px;
+    padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .hero-b .cta-ghost {
+    background:transparent;color:#8b949e;
+    border:1px solid #30363d;border-radius:6px;
+    padding:9px 20px;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .hero-b .right {
+    width:280px;flex-shrink:0;
+    display:flex;flex-direction:column;
+    background:#161b22;
+  }
+  .hero-b .stat-row {
+    padding:16px 20px;border-bottom:1px solid #21262d;
+    display:flex;align-items:center;gap:10px;
+  }
+  .hero-b .stat-icon {
+    width:28px;height:28px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .hero-b .stat-val { font-size:16px;font-weight:800;color:#f0f6fc; }
+  .hero-b .stat-label { font-size:10px;color:#8b949e; }
+  .hero-b .concept-list { padding:12px 16px;flex:1;overflow:hidden; }
+  .hero-b .cl-label { font-size:9px;font-weight:700;letter-spacing:0.1em;color:#484f58;margin-bottom:8px; }
+  .hero-b .cl-item {
+    display:flex;align-items:center;gap:8px;
+    padding:6px 8px;border-radius:6px;margin-bottom:3px;
+    background:rgba(255,255,255,0.02);border:1px solid transparent;
+    font-size:10px;color:#8b949e;
+    animation: slide-in 0.5s ease both;
+  }
+  .hero-b .cl-item:nth-child(2){animation-delay:.1s}
+  .hero-b .cl-item:nth-child(3){animation-delay:.2s}
+  .hero-b .cl-item:nth-child(4){animation-delay:.3s}
+  .hero-b .cl-item:nth-child(5){animation-delay:.4s}
+  @keyframes slide-in { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:none} }
+  .hero-b .cl-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+  .hero-b .cl-item.done { color:#e6edf3; }
+  .hero-b .cl-check { margin-left:auto;font-size:9px;color:#ffa657; }
+
+  /* ════════ HERO C: Minimal / Focused ════════ */
+  .hero-c {
+    background:#0d1117;
+    min-height:320px;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;
+    font-family:'Inter',sans-serif;
+    position:relative;overflow:hidden;
+  }
+  /* subtle noise texture */
+  .hero-c::before {
+    content:'';position:absolute;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity:0.3;pointer-events:none;
+  }
+  /* top bar */
+  .hero-c .topbar {
+    position:absolute;top:0;left:0;right:0;
+    padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid #21262d;
+  }
+  .hero-c .topbar-logo {
+    font-size:12px;font-weight:800;letter-spacing:0.04em;
+    color:#f0f6fc;
+  }
+  .hero-c .topbar-logo span { color:#ffa657; }
+  .hero-c .topbar-nav { display:flex;gap:16px; }
+  .hero-c .topbar-nav a { font-size:11px;color:#8b949e;text-decoration:none; }
+  .hero-c .topbar-nav a:hover { color:#f0f6fc; }
+  .hero-c .topbar-cta {
+    background:rgba(255,166,87,0.1);border:1px solid rgba(255,166,87,0.25);
+    color:#ffa657;border-radius:6px;
+    padding:5px 12px;font-size:11px;font-weight:600;
+  }
+  /* center content */
+  .hero-c .content {
+    position:relative;z-index:1;
+    text-align:center;padding:20px;max-width:520px;
+    animation: emerge 0.8s ease both;
+  }
+  @keyframes emerge {
+    from { opacity:0;transform:translateY(16px); }
+    to   { opacity:1;transform:none; }
+  }
+  .hero-c .kicker {
+    font-size:10px;font-weight:700;letter-spacing:0.14em;
+    color:#484f58;text-transform:uppercase;margin-bottom:14px;
+  }
+  .hero-c .kicker span {
+    color:#ffa657;border-bottom:1px solid rgba(255,166,87,0.3);padding-bottom:1px;
+  }
+  .hero-c h1 {
+    font-size:48px;font-weight:900;line-height:1.02;
+    letter-spacing:-0.04em;color:#f0f6fc;margin-bottom:14px;
+  }
+  .hero-c h1 .line2 {
+    display:block;color:transparent;
+    -webkit-text-stroke:1.5px rgba(255,255,255,0.25);
+  }
+  .hero-c h1 .accent { color:#ffa657;-webkit-text-stroke:0; }
+  .hero-c p {
+    font-size:13px;color:#6e7681;line-height:1.7;margin-bottom:24px;
+  }
+  .hero-c .actions { display:flex;align-items:center;justify-content:center;gap:10px; }
+  .hero-c .btn-fill {
+    background:#ffa657;color:#0d1117;border:none;
+    border-radius:7px;padding:10px 22px;
+    font-size:12px;font-weight:700;cursor:pointer;
+    font-family:'Inter',sans-serif;
+    box-shadow:0 4px 20px rgba(255,166,87,0.25);
+    transition:box-shadow 0.2s,transform 0.15s;
+  }
+  .hero-c .btn-fill:hover { box-shadow:0 6px 28px rgba(255,166,87,0.4);transform:translateY(-1px); }
+  .hero-c .btn-ghost {
+    background:transparent;color:#8b949e;
+    border:1px solid #30363d;border-radius:7px;
+    padding:10px 20px;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  /* scrolling concept ticker */
+  .hero-c .ticker {
+    position:absolute;bottom:0;left:0;right:0;
+    border-top:1px solid #21262d;
+    height:36px;overflow:hidden;
+    display:flex;align-items:center;
+  }
+  .hero-c .ticker-track {
+    display:flex;align-items:center;gap:0;
+    animation: ticker-scroll 18s linear infinite;
+    white-space:nowrap;
+  }
+  @keyframes ticker-scroll {
+    from { transform:translateX(0); }
+    to   { transform:translateX(-50%); }
+  }
+  .hero-c .ticker-item {
+    padding:0 20px;font-size:10px;font-weight:500;
+    color:#484f58;border-right:1px solid #21262d;
+    display:flex;align-items:center;gap:6px;height:36px;
+  }
+  .hero-c .ticker-item .dot { width:4px;height:4px;border-radius:50%;background:#ffa657;opacity:0.5; }
+
+  /* ── Selection ── */
+  .sel-overlay {
+    display:none;position:absolute;inset:0;border-radius:12px;
+    border:2px solid #ffa657;pointer-events:none;
+  }
+  .hero-option.selected .sel-overlay { display:block; }
+
+  /* bottom bar */
+  #bar {
+    position:fixed;bottom:0;left:0;right:0;
+    background:rgba(13,17,23,0.96);backdrop-filter:blur(12px);
+    border-top:1px solid #21262d;
+    padding:12px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    transform:translateY(100%);transition:transform 0.3s;z-index:100;
+  }
+  #bar.on { transform:translateY(0); }
+  #bar-text { font-size:13px;color:#f0f6fc;font-weight:600; }
+  #bar-btn {
+    background:#ffa657;color:#0d1117;border:none;border-radius:7px;
+    padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<p class="page-title">Hero Page — Which layout?</p>
+<p class="page-sub">All three use the Slate/Parchment theme. Pick the hero that matches your vision.</p>
+
+<!-- ── HERO A ── -->
+<div class="hero-option" onclick="pick(this,'hero-a','A — Dramatic / Cinematic')">
+  <div class="option-label">
+    <div class="opt-num">A</div>
+    <span class="opt-name">Dramatic / Cinematic</span>
+    <span class="opt-desc">Animated grid background · floating nodes · full-bleed dark stage</span>
+    <span class="selected-mark">✓ Selected</span>
+  </div>
+  <div class="sel-overlay"></div>
+  <div class="hero-a">
+    <div class="grid"></div>
+    <div class="vignette"></div>
+
+    <!-- floating nodes -->
+    <div class="node" style="top:18%;left:6%;animation-delay:0s">Load Balancer</div>
+    <div class="node accent" style="top:30%;left:3%;animation-delay:0.7s">round-robin</div>
+    <div class="node" style="top:55%;left:5%;animation-delay:1.2s">Redis Cache</div>
+    <div class="node" style="top:20%;right:5%;animation-delay:0.3s">API Gateway</div>
+    <div class="node accent" style="top:40%;right:4%;animation-delay:1s">REST · gRPC</div>
+    <div class="node" style="top:65%;right:6%;animation-delay:0.5s">PostgreSQL</div>
+    <div class="node" style="top:75%;left:8%;animation-delay:1.5s">Message Queue</div>
+    <div class="node" style="top:72%;right:8%;animation-delay:0.9s">99.99% uptime</div>
+
+    <div class="content">
+      <div class="badge"><div class="badge-dot"></div>30 CONCEPTS · INTERACTIVE DIAGRAMS · INTERVIEW PREP</div>
+      <h1>System Design <span>Lab</span></h1>
+      <p>From beginner intuition to staff-level precision. Every concept with analogies, live diagrams, and CTO-grade interview answers.</p>
+      <button class="cta">Open the Lab →</button>
+      <div class="pills">
+        <div class="pill">Load Balancing</div>
+        <div class="pill">Caching</div>
+        <div class="pill">CDN</div>
+        <div class="pill">Sharding</div>
+        <div class="pill">Kafka</div>
+        <div class="pill">Circuit Breaker</div>
+        <div class="pill">Rate Limiting</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── HERO B ── -->
+<div class="hero-option" onclick="pick(this,'hero-b','B — Editorial / Split Layout')">
+  <div class="option-label">
+    <div class="opt-num">B</div>
+    <span class="opt-name">Editorial / Split Layout</span>
+    <span class="opt-desc">Left: headline + CTA · Right: live concept browser panel with progress</span>
+    <span class="selected-mark">✓ Selected</span>
+  </div>
+  <div class="sel-overlay"></div>
+  <div class="hero-b">
+    <div class="left">
+      <div class="eyebrow">System Design Lab</div>
+      <h1>Master every<br>architecture<br><em>concept.</em></h1>
+      <p>From load balancers to distributed consensus — every concept explained with analogies, live diagrams, and staff-engineer answers.</p>
+      <div class="cta-row">
+        <button class="cta-primary">Open the Lab →</button>
+        <button class="cta-ghost">Browse Concepts</button>
+      </div>
+    </div>
+    <div class="right">
+      <div class="stat-row">
+        <div class="stat-icon" style="background:rgba(255,166,87,0.1);border:1px solid rgba(255,166,87,0.2);">
+          <div style="width:12px;height:12px;border-radius:3px;background:#ffa657;opacity:0.7;"></div>
+        </div>
+        <div><div class="stat-val">30</div><div class="stat-label">Concepts covered</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-icon" style="background:rgba(87,211,141,0.1);border:1px solid rgba(87,211,141,0.2);">
+          <div style="width:12px;height:12px;border-radius:3px;background:#57d38d;opacity:0.7;"></div>
+        </div>
+        <div><div class="stat-val">Interactive</div><div class="stat-label">Live diagrams per concept</div></div>
+      </div>
+      <div class="concept-list">
+        <div class="cl-label">RECENTLY STUDIED</div>
+        <div class="cl-item done"><div class="cl-dot" style="background:#ffa657;"></div>Load Balancer<div class="cl-check">✓</div></div>
+        <div class="cl-item done"><div class="cl-dot" style="background:#57d38d;"></div>Caching<div class="cl-check">✓</div></div>
+        <div class="cl-item"><div class="cl-dot" style="background:#8b949e;"></div>API Gateway</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#8b949e;"></div>Sharding</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#8b949e;"></div>Kafka / Message Queues</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── HERO C ── -->
+<div class="hero-option" onclick="pick(this,'hero-c','C — Minimal / App-Shell')">
+  <div class="option-label">
+    <div class="opt-num">C</div>
+    <span class="opt-name">Minimal / App-Shell</span>
+    <span class="opt-desc">Full nav bar · centered headline · scrolling concept ticker at bottom · very clean</span>
+    <span class="selected-mark">✓ Selected</span>
+  </div>
+  <div class="sel-overlay"></div>
+  <div class="hero-c">
+    <div class="topbar">
+      <div class="topbar-logo">System Design <span>Lab</span></div>
+      <div class="topbar-nav">
+        <a href="#">Concepts</a>
+        <a href="#">Diagrams</a>
+        <a href="#">Interview</a>
+      </div>
+      <div class="topbar-cta">Open Lab</div>
+    </div>
+    <div class="content">
+      <div class="kicker">For engineers · By engineers · <span>30 concepts</span></div>
+      <h1>
+        System Design
+        <span class="line2">from <span class="accent">zero</span> to staff.</span>
+      </h1>
+      <p>Every architecture concept explained with real-world analogies, interactive diagrams, and CTO-grade interview answers.</p>
+      <div class="actions">
+        <button class="btn-fill">Open the Lab →</button>
+        <button class="btn-ghost">Browse Concepts</button>
+      </div>
+    </div>
+    <div class="ticker">
+      <div class="ticker-track">
+        <div class="ticker-item"><div class="dot"></div>Load Balancing</div>
+        <div class="ticker-item"><div class="dot"></div>Caching</div>
+        <div class="ticker-item"><div class="dot"></div>CDN</div>
+        <div class="ticker-item"><div class="dot"></div>Sharding</div>
+        <div class="ticker-item"><div class="dot"></div>Kafka</div>
+        <div class="ticker-item"><div class="dot"></div>Circuit Breaker</div>
+        <div class="ticker-item"><div class="dot"></div>Rate Limiting</div>
+        <div class="ticker-item"><div class="dot"></div>CAP Theorem</div>
+        <div class="ticker-item"><div class="dot"></div>API Gateway</div>
+        <div class="ticker-item"><div class="dot"></div>Microservices</div>
+        <!-- duplicate for seamless loop -->
+        <div class="ticker-item"><div class="dot"></div>Load Balancing</div>
+        <div class="ticker-item"><div class="dot"></div>Caching</div>
+        <div class="ticker-item"><div class="dot"></div>CDN</div>
+        <div class="ticker-item"><div class="dot"></div>Sharding</div>
+        <div class="ticker-item"><div class="dot"></div>Kafka</div>
+        <div class="ticker-item"><div class="dot"></div>Circuit Breaker</div>
+        <div class="ticker-item"><div class="dot"></div>Rate Limiting</div>
+        <div class="ticker-item"><div class="dot"></div>CAP Theorem</div>
+        <div class="ticker-item"><div class="dot"></div>API Gateway</div>
+        <div class="ticker-item"><div class="dot"></div>Microservices</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="bar">
+  <span id="bar-text"></span>
+  <button id="bar-btn" onclick="confirm()">Use This Hero →</button>
+</div>
+
+<script>
+let sel = {};
+function pick(el, id, name) {
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    delete sel[id];
+  } else {
+    // single select
+    document.querySelectorAll('.hero-option').forEach(e => e.classList.remove('selected'));
+    sel = {};
+    el.classList.add('selected');
+    sel[id] = name;
+  }
+  const bar = document.getElementById('bar');
+  const keys = Object.keys(sel);
+  if (keys.length) {
+    bar.classList.add('on');
+    document.getElementById('bar-text').textContent = 'Selected: ' + Object.values(sel).join(', ');
+  } else {
+    bar.classList.remove('on');
+  }
+  try {
+    fetch('/event', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'click', choice:id, text:name, timestamp:Date.now()})
+    });
+  } catch(e) {}
+}
+function confirm() {
+  const keys = Object.keys(sel);
+  if (!keys.length) return;
+  try {
+    fetch('/event', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'confirm', choices:keys, names:Object.values(sel), timestamp:Date.now()})
+    });
+  } catch(e) {}
+  document.getElementById('bar-btn').textContent = '✓ Confirmed!';
+  document.getElementById('bar-btn').style.background = '#57d38d';
+}
+</script>
+</body>
+</html>

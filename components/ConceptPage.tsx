@@ -16,6 +16,7 @@ import ConceptIcon from './icons/ConceptIcon';
 import type { Concept, FailureMode } from '@/lib/types';
 
 const ConceptDiagram = dynamic(() => import('./ConceptDiagram'), { ssr: false });
+const FloatingMentor = dynamic(() => import('@/components/FloatingMentor'), { ssr: false });
 
 function getCatColor(cat: string): string {
   return CATEGORIES.find(c => c.id === cat)?.color ?? 'var(--accent)';
@@ -764,6 +765,11 @@ export default function ConceptPage({ concept }: { concept: Concept }) {
           <ContinueLearning  concept={concept} />
         </motion.div>
       </div>
+      <FloatingMentor
+        conceptId={concept.id}
+        conceptTitle={concept.title}
+        conceptColor={color}
+      />
     </div>
   );
 }
