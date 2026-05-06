@@ -14,6 +14,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { DIAGRAMS } from '@/lib/data/diagrams';
+import { CLOUD_DIAGRAMS } from '@/lib/data/diagrams-cloud';
+import { NETWORKING_DIAGRAMS } from '@/lib/data/diagrams-networking';
 
 /* ── Invisible handle style (layout anchors only) ─────────────── */
 const HS: React.CSSProperties = {
@@ -212,7 +214,8 @@ interface Props {
 }
 
 export default function ConceptDiagram({ conceptId, color }: Props) {
-  const diagram = DIAGRAMS[conceptId];
+  const ALL_DIAGRAMS = { ...DIAGRAMS, ...CLOUD_DIAGRAMS, ...NETWORKING_DIAGRAMS };
+  const diagram = ALL_DIAGRAMS[conceptId];
   const [mounted, setMounted] = useState(false);
   const [nodes, , onNodesChange] = useNodesState(diagram?.nodes ?? []);
   const [edges, , onEdgesChange] = useEdgesState(diagram?.edges ?? []);

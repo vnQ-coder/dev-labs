@@ -17,6 +17,8 @@ import { CATEGORIES } from '@/lib/data/categories';
 import { useProgress } from '@/hooks/useProgress';
 import ConceptIcon from './icons/ConceptIcon';
 import type { Concept, FailureMode, PipelineStep, DebugCommand } from '@/lib/types';
+import dynamic from 'next/dynamic';
+const ConceptDiagram = dynamic(() => import('./ConceptDiagram'), { ssr: false });
 
 /* ── Icon map ── */
 
@@ -47,6 +49,7 @@ const SECTIONS = [
   { id: 'hook',      label: 'Intro'     },
   { id: 'simple',   label: 'ELI5'      },
   { id: 'pipeline', label: 'Journey'   },
+  { id: 'diagram', label: 'Diagram'   },
   { id: 'failures', label: 'Failures'  },
   { id: 'debug',    label: 'Debug'     },
   { id: 'interview',label: 'Interview' },
@@ -516,7 +519,18 @@ function PipelineSection({ concept }: { concept: Concept }) {
   );
 }
 
-/* ── 4. Failures Section ── */
+/* ── 4. Diagram Section ── */
+
+function DiagramSection({ concept, color }: { concept: Concept; color: string }) {
+  return (
+    <section id="section-diagram" className="mb-10">
+      <div className="section-label mb-3" style={{ color }}>Architecture Diagram</div>
+      <ConceptDiagram conceptId={concept.id} color={color} />
+    </section>
+  );
+}
+
+/* ── 5. Failures Section ── */
 
 const SEV_CONFIG = {
   critical: { bg: 'rgba(201,112,112,0.08)', border: 'rgba(201,112,112,0.28)', color: '#c97070', label: 'CRITICAL' },
@@ -877,6 +891,7 @@ export default function BehindTheScenesPage({ concept }: { concept: Concept }) {
           <HookSection      concept={concept} />
           <SimpleSection    concept={concept} />
           <PipelineSection  concept={concept} />
+          <DiagramSection   concept={concept} color={color} />
           <FailuresSection  concept={concept} />
           <DebugSection     concept={concept} />
           <InterviewSection concept={concept} />
