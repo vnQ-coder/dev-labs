@@ -140,7 +140,7 @@ async def run_agent(request: AgentRequest) -> AsyncIterator[str]:
 
     try:
         model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
+            model_name="gemini-2.5-flash",
             system_instruction=system_prompt,
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             generation_config={
