@@ -6,6 +6,8 @@ import { CONCEPTS_CLOUD_NETWORK } from './concepts-cloud-network';
 import { CONCEPTS_CLOUD_DELIVERY } from './concepts-cloud-delivery';
 import { CONCEPTS_CLOUD_PLATFORM } from './concepts-cloud-platform';
 import { CONCEPTS_NETWORKING } from './concepts-networking';
+import { CONCEPTS_OSI } from './concepts-osi';
+import { CONCEPTS_PROTOCOLS } from './concepts-protocols';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -15,4 +17,6 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_CLOUD_DELIVERY,
   ...CONCEPTS_CLOUD_PLATFORM,
   ...CONCEPTS_NETWORKING,
+  ...CONCEPTS_OSI,
+  ...CONCEPTS_PROTOCOLS,
 ];

@@ -49,6 +49,8 @@ const CONCEPT_ICONS: Record<string, LucideIcon> = {
   'reverse-proxy':    ArrowLeftRight,
   'cdn-explained':    CloudLightning,
   'debug-network':    Bug,
+  'osi-layers':       Layers,
+  'network-protocols': Radio,
 };
 
 interface ConceptIconProps {
