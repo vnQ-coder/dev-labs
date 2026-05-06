@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useMemo, KeyboardEvent } from 'react';
 import { X } from 'lucide-react';
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -30,12 +30,23 @@ export function TagInput({
   const [input, setInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredSuggestions = input.length > 0
-    ? suggestions.filter(s =>
-        s.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s)
-      ).slice(0, 5)
-    : [];
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
+
+  const filteredSuggestions = useMemo(
+    () =>
+      input.length > 0
+        ? suggestions
+            .filter(s => s.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s))
+            .slice(0, 5)
+        : [],
+    [input, suggestions, tags]
+  );
 
   function addTag(value: string) {
     const trimmed = value.trim();
@@ -106,7 +117,9 @@ export function TagInput({
           value={input}
           onChange={e => { setInput(e.target.value); setShowSuggestions(true); }}
           onKeyDown={handleKeyDown}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onBlur={() => {
+            blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
+          }}
           placeholder={tags.length === 0 ? placeholder : ''}
           style={{
             background: 'none',
