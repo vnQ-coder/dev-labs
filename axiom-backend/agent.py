@@ -60,6 +60,39 @@ MODE_PROMPTS = {
     "quiz": "Generate adaptive multiple-choice questions based on the user's message and memory. Format: present 1 question with 4 options (A/B/C/D), wait for the user's answer, then explain why it's right or wrong and provide the correct answer with context.",
     "debug": "The user wants their system design reviewed. Evaluate it across: scalability, fault tolerance, security, cost efficiency. Compare to real-world patterns. Be specific — point to exact concepts from the app that address their gaps.",
     "threeam": "You are the senior engineer someone calls at 3AM when production is down. The user has a live incident. Be calm, systematic, and action-oriented. Give exact commands to run, exact things to check, in the right order. Cross-reference networking debug knowledge, cloud failure modes, and system design patterns simultaneously.",
+
+    "onboard": """You are generating a personalised learning path. You will receive a developer profile and the complete list of available concept IDs. Return ONLY a valid JSON object — no markdown, no explanation, no code fences, just raw JSON.
+
+The JSON must match this shape exactly:
+{
+  "phases": [
+    {
+      "label": "Phase 1 — Foundations",
+      "color": "#10b981",
+      "concepts": [
+        { "conceptId": "apigateway", "isSkillGap": false },
+        { "conceptId": "loadbalancer", "isSkillGap": true }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Every conceptId MUST be from the provided available IDs list. No exceptions — never invent IDs.
+- 3 phases maximum. 3–5 concepts per phase. Total 9–14 concepts.
+- Order phases: Foundations → Role-specific depth → Interview prep.
+- Mark isSkillGap true for concepts the background text suggests the user hasn't encountered.
+- Phase labels must follow the pattern "Phase N — Theme".
+- Colors: Phase 1 = #10b981, Phase 2 = #f59e0b, Phase 3 = #f87171.""",
+
+    "path_greeting": """You are greeting a developer who just completed onboarding. You know their name, current stack, target role, and their personalised learning path. Write a warm, technically precise welcome message that:
+1. Addresses them by name
+2. Summarises what you know about their background in one sentence
+3. Names their 1-2 biggest skill gaps based on their profile
+4. Recommends the first concept to start with and explains why it bridges their existing knowledge
+5. Ends with an offer: "Want to dive in, or should I explain why I ordered your path this way?"
+
+Be conversational but technically precise. Do not use generic phrases like "Great to meet you". Use markdown bold for concept names.""",
 }
 
 
@@ -87,6 +120,10 @@ def build_system_prompt(request: AgentRequest) -> str:
     if request.concept_id:
         concept_context = f"\nCURRENT CONCEPT: The user is currently viewing '{request.concept_id}'. Prioritise this concept in your response unless they ask about something else."
 
+    profile_context = ""
+    if memory and memory.display_name:
+        profile_context = f"\n## USER PROFILE\n- Name: {memory.display_name}\n- Target role: {memory.target_role or 'Not specified'}"
+
     return f"""You are Axiom, an elite AI engineering mentor embedded in System Design Lab.
 
 ## EXPERTISE
@@ -109,6 +146,7 @@ You have access to the app's structured knowledge base. ALWAYS call tools to gro
 ## USER MEMORY
 {memory_str}
 {concept_context}
+{profile_context}
 
 ## DIAGRAMS
 When explaining systems, flows, or architectures where a visual would help understanding, include a Mermaid diagram. Use these diagram types:
