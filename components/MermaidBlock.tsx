@@ -8,6 +8,22 @@ interface MermaidBlockProps {
 
 let mermaidInitialized = false;
 
+/**
+ * Auto-quote unquoted Mermaid node labels that contain characters the parser
+ * chokes on: parentheses, forward-slashes, plus signs, dots.
+ * e.g.  F[HTTPS (HTTP/2 + TLS)]  →  F["HTTPS (HTTP/2 + TLS)"]
+ */
+function sanitizeMermaid(code: string): string {
+  // Match [label] where label is NOT already quoted and contains special chars
+  return code.replace(/\[(?!")([^\]\[]+)\]/g, (match, label) => {
+    if (/[()\/+.]/.test(label)) {
+      // Escape any double-quotes that already exist inside the label
+      return `["${label.replace(/"/g, '\\"')}"]`;
+    }
+    return match;
+  });
+}
+
 export function MermaidBlock({ code, mini = false }: MermaidBlockProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +84,7 @@ export function MermaidBlock({ code, mini = false }: MermaidBlockProps) {
           mermaidInitialized = true;
         }
 
-        const cleanCode = code.trim();
+        const cleanCode = sanitizeMermaid(code.trim());
         const { svg } = await mermaid.render(idRef.current, cleanCode);
 
         if (cancelled) return;
