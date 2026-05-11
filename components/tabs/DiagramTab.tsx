@@ -30,6 +30,28 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   rds: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
   iam: lazy(() => import('@/components/diagrams/CloudArchDiagram')),
   lambda: lazy(() => import('@/components/diagrams/ServerlessDiagram')),
+
+  // Design Patterns
+  singleton: lazy(() => import('@/components/diagrams/SingletonDiagram')),
+  'factory-method': lazy(() => import('@/components/diagrams/FactoryMethodDiagram')),
+  builder: lazy(() => import('@/components/diagrams/BuilderDiagram')),
+  adapter: lazy(() => import('@/components/diagrams/AdapterDiagram')),
+  facade: lazy(() => import('@/components/diagrams/FacadeDiagram')),
+  decorator: lazy(() => import('@/components/diagrams/DecoratorDiagram')),
+  proxy: lazy(() => import('@/components/diagrams/ProxyDiagram')),
+  observer: lazy(() => import('@/components/diagrams/ObserverDiagram')),
+  strategy: lazy(() => import('@/components/diagrams/StrategyDiagram')),
+  command: lazy(() => import('@/components/diagrams/CommandDiagram')),
+  iterator: lazy(() => import('@/components/diagrams/IteratorDiagram')),
+  'template-method': lazy(() => import('@/components/diagrams/TemplateMethodDiagram')),
+
+  // Architectural Patterns
+  'event-driven-architecture': lazy(() => import('@/components/diagrams/EventDrivenArchDiagram')),
+  cqrs: lazy(() => import('@/components/diagrams/CQRSDiagram')),
+  saga: lazy(() => import('@/components/diagrams/SagaDiagram')),
+  'event-sourcing': lazy(() => import('@/components/diagrams/EventSourcingDiagram')),
+  'transactional-outbox': lazy(() => import('@/components/diagrams/TransactionalOutboxDiagram')),
+  'strangler-fig': lazy(() => import('@/components/diagrams/StranglerFigDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {

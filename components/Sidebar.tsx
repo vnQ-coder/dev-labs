@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FlaskConical, Search, Globe as GlobeIcon, Trophy, BookOpen, Sparkles,
@@ -24,7 +24,8 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   const [activeCat, setActiveCat] = useState<string>('all');
   const { isViewed, count } = useProgress();
   const { completedCount, totalConcepts, path } = useLearningPath();
-  const profile = typeof window !== 'undefined' ? loadProfile() : null;
+  const [profile, setProfile] = useState<ReturnType<typeof loadProfile>>(null);
+  useEffect(() => { setProfile(loadProfile()); }, []);
 
   const currentConcept = params.get('concept');
   const currentView = params.get('view');
