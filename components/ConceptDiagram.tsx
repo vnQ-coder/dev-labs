@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,6 +16,30 @@ import '@xyflow/react/dist/style.css';
 import { DIAGRAMS } from '@/lib/data/diagrams';
 import { CLOUD_DIAGRAMS } from '@/lib/data/diagrams-cloud';
 import { NETWORKING_DIAGRAMS } from '@/lib/data/diagrams-networking';
+
+/* ── Lazy component diagrams (design patterns + arch patterns) ─── */
+const COMPONENT_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.ReactElement>> = {
+  // Design Patterns
+  singleton:         lazy(() => import('./diagrams/SingletonDiagram')),
+  'factory-method':  lazy(() => import('./diagrams/FactoryMethodDiagram')),
+  builder:           lazy(() => import('./diagrams/BuilderDiagram')),
+  adapter:           lazy(() => import('./diagrams/AdapterDiagram')),
+  facade:            lazy(() => import('./diagrams/FacadeDiagram')),
+  decorator:         lazy(() => import('./diagrams/DecoratorDiagram')),
+  proxy:             lazy(() => import('./diagrams/ProxyDiagram')),
+  observer:          lazy(() => import('./diagrams/ObserverDiagram')),
+  strategy:          lazy(() => import('./diagrams/StrategyDiagram')),
+  command:           lazy(() => import('./diagrams/CommandDiagram')),
+  iterator:          lazy(() => import('./diagrams/IteratorDiagram')),
+  'template-method': lazy(() => import('./diagrams/TemplateMethodDiagram')),
+  // Architectural Patterns
+  'event-driven-architecture': lazy(() => import('./diagrams/EventDrivenArchDiagram')),
+  cqrs:                        lazy(() => import('./diagrams/CQRSDiagram')),
+  saga:                        lazy(() => import('./diagrams/SagaDiagram')),
+  'event-sourcing':            lazy(() => import('./diagrams/EventSourcingDiagram')),
+  'transactional-outbox':      lazy(() => import('./diagrams/TransactionalOutboxDiagram')),
+  'strangler-fig':             lazy(() => import('./diagrams/StranglerFigDiagram')),
+};
 
 /* ── Invisible handle style (layout anchors only) ─────────────── */
 const HS: React.CSSProperties = {
@@ -214,6 +238,21 @@ interface Props {
 }
 
 export default function ConceptDiagram({ conceptId, color }: Props) {
+  const ComponentDiagram = COMPONENT_DIAGRAMS[conceptId];
+  if (ComponentDiagram) {
+    return (
+      <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${color}25` }}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center" style={{ height: 420, background: 'linear-gradient(135deg,#04080f 0%,#060d1c 100%)' }}>
+            <div className="text-2xl animate-pulse">⚡</div>
+          </div>
+        }>
+          <ComponentDiagram />
+        </Suspense>
+      </div>
+    );
+  }
+
   const ALL_DIAGRAMS = { ...DIAGRAMS, ...CLOUD_DIAGRAMS, ...NETWORKING_DIAGRAMS };
   const diagram = ALL_DIAGRAMS[conceptId];
   const [mounted, setMounted] = useState(false);
