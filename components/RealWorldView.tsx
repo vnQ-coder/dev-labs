@@ -1,9 +1,27 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { REALWORLD } from '@/lib/data/realworld';
 import { RealWorldSystem } from '@/lib/types';
+
+const RW_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.ReactElement>> = {
+  netflix:                  lazy(() => import('./diagrams/realworld/NetflixDiagram')),
+  uber:                     lazy(() => import('./diagrams/realworld/UberDiagram')),
+  whatsapp:                 lazy(() => import('./diagrams/realworld/WhatsAppDiagram')),
+  twitter:                  lazy(() => import('./diagrams/realworld/TwitterDiagram')),
+  amazon:                   lazy(() => import('./diagrams/realworld/AmazonDiagram')),
+  chatgpt:                  lazy(() => import('./diagrams/realworld/ChatGPTDiagram')),
+  googledocs:               lazy(() => import('./diagrams/realworld/GoogleDocsDiagram')),
+  youtube:                  lazy(() => import('./diagrams/realworld/YouTubeDiagram')),
+  'aws-3tier':              lazy(() => import('./diagrams/realworld/Aws3TierDiagram')),
+  'aws-serverless':         lazy(() => import('./diagrams/realworld/AwsServerlessDiagram')),
+  'aws-multiregion':        lazy(() => import('./diagrams/realworld/AwsMultiRegionDiagram')),
+  'ecommerce-order-service':lazy(() => import('./diagrams/realworld/EcommerceOrderDiagram')),
+  'twitter-feed-cqrs':      lazy(() => import('./diagrams/realworld/TwitterFeedCqrsDiagram')),
+  'notification-service':   lazy(() => import('./diagrams/realworld/NotificationDiagram')),
+  'legacy-monolith-migration': lazy(() => import('./diagrams/realworld/LegacyMigrationDiagram')),
+};
 
 export default function RealWorldView() {
   const router = useRouter();
@@ -65,6 +83,7 @@ const SECTIONS = [
   { id: 'requirements', label: 'Requirements' },
   { id: 'scale', label: 'Scale' },
   { id: 'design', label: 'Design' },
+  { id: 'diagram', label: 'Diagram' },
   { id: 'deepdive', label: 'Deep Dive' },
   { id: 'decisions', label: 'Decisions' },
   { id: 'interview', label: 'Interview' },
@@ -248,6 +267,26 @@ function SystemDetail({ system, onBack }: { system: RealWorldSystem; onBack: () 
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* Architecture Diagram */}
+          <section id="rw-diagram">
+            <SectionHeader color={system.color} label="Architecture Diagram" />
+            {RW_DIAGRAMS[system.id] ? (
+              <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${system.color}25` }}>
+                <Suspense fallback={
+                  <div className="flex items-center justify-center" style={{ height: 420, background: 'linear-gradient(135deg,#04080f 0%,#060d1c 100%)' }}>
+                    <div className="text-2xl animate-pulse">⚡</div>
+                  </div>
+                }>
+                  {(() => { const D = RW_DIAGRAMS[system.id]; return <D />; })()}
+                </Suspense>
+              </div>
+            ) : (
+              <div className="rounded-2xl flex items-center justify-center" style={{ height: 320, background: 'var(--s2)', border: '1px solid var(--b1)' }}>
+                <span style={{ color: 'var(--tm)', fontSize: 13 }}>Diagram coming soon</span>
+              </div>
+            )}
           </section>
 
           {/* Deep Dive */}
