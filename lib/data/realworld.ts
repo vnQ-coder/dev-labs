@@ -1,5 +1,6 @@
 import { RealWorldSystem } from '../types';
 import { REALWORLD_AWS } from './realworld-aws';
+import { REALWORLD_PATTERNS } from './realworld-patterns';
 
 const REALWORLD_BASE: RealWorldSystem[] = [
   {
@@ -1099,4 +1100,4 @@ const REALWORLD_BASE: RealWorldSystem[] = [
   },
 ];
 
-export const REALWORLD: RealWorldSystem[] = [...REALWORLD_BASE, ...REALWORLD_AWS];
+export const REALWORLD: RealWorldSystem[] = [...REALWORLD_BASE, ...REALWORLD_AWS, ...REALWORLD_PATTERNS];

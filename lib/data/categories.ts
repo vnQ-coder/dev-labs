@@ -9,4 +9,6 @@ export const CATEGORIES: Category[] = [
   { id: 'messaging',   label: 'Messaging',         color: '#c97a40' },
   { id: 'cloud',       label: 'Cloud',             color: '#4db0c9' },
   { id: 'networking',  label: 'Behind the Scenes', color: '#6272d4' },
+  { id: 'patterns',     label: 'Design Patterns',       color: '#a78bfa' },
+  { id: 'arch-patterns', label: 'Architectural Patterns', color: '#f59e0b' },
 ];

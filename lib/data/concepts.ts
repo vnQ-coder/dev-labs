@@ -10,6 +10,8 @@ import { CONCEPTS_OSI } from './concepts-osi';
 import { CONCEPTS_PROTOCOLS } from './concepts-protocols';
 import { CONCEPTS_KUBERNETES } from './concepts-kubernetes';
 import { CONCEPTS_AWS_CONTAINERS } from './concepts-aws-containers';
+import { CONCEPTS_DESIGN_PATTERNS } from './concepts-design-patterns';
+import { CONCEPTS_ARCH_PATTERNS } from './concepts-arch-patterns';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -23,4 +25,6 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PROTOCOLS,
   ...CONCEPTS_KUBERNETES,
   ...CONCEPTS_AWS_CONTAINERS,
+  ...CONCEPTS_DESIGN_PATTERNS,
+  ...CONCEPTS_ARCH_PATTERNS,
 ];
