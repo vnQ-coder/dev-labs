@@ -2,7 +2,7 @@ import { RealWorldSystem } from '../types';
 
 export const REALWORLD_INFRA: RealWorldSystem[] = [
   {
-    id: 'uber',
+    id: 'uber-dispatch',
     icon: '🚗',
     name: 'Uber',
     color: '#000000',

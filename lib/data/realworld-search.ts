@@ -131,7 +131,7 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
       "Google Search scales through massive parallelism, not faster machines. A single query fans out to thousands of index-shard machines simultaneously, each returning their top results, which are then merged. The inverted index — a 200-year-old library science concept — is still the core data structure. Google's engineering achievement is making it work at 100 billion documents with sub-200ms latency by distributing the lookup across a data center's worth of RAM.",
   },
   {
-    id: 'amazon',
+    id: 'amazon-ecommerce',
     icon: '📦',
     name: 'Amazon',
     color: '#ff9900',

@@ -159,7 +159,7 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
   },
 
   {
-    id: 'twitter',
+    id: 'twitter-x',
     icon: '🐦',
     name: 'Twitter / X',
     color: '#000000',

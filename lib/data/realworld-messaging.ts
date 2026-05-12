@@ -2,7 +2,7 @@ import { RealWorldSystem } from '../types';
 
 export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
   {
-    id: 'whatsapp',
+    id: 'whatsapp-e2e',
     icon: '💚',
     name: 'WhatsApp',
     color: '#25d366',
