@@ -21,6 +21,24 @@ const RW_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.ReactEle
   'twitter-feed-cqrs':      lazy(() => import('./diagrams/realworld/TwitterFeedCqrsDiagram')),
   'notification-service':   lazy(() => import('./diagrams/realworld/NotificationDiagram')),
   'legacy-monolith-migration': lazy(() => import('./diagrams/realworld/LegacyMigrationDiagram')),
+  // Streaming
+  'jiohotstar':               lazy(() => import('./diagrams/realworld/JioHotstarDiagram')),
+  'twitch':                   lazy(() => import('./diagrams/realworld/TwitchDiagram')),
+  // Social
+  'discord':                  lazy(() => import('./diagrams/realworld/DiscordDiagram')),
+  'twitter-x':                lazy(() => import('./diagrams/realworld/TwitterXDiagram')),
+  // Infrastructure
+  'uber-dispatch':            lazy(() => import('./diagrams/realworld/UberDispatchDiagram')),
+  'airbnb':                   lazy(() => import('./diagrams/realworld/AirbnbDiagram')),
+  // Messaging
+  'whatsapp-e2e':             lazy(() => import('./diagrams/realworld/WhatsAppE2EDiagram')),
+  'slack':                    lazy(() => import('./diagrams/realworld/SlackDiagram')),
+  // Search
+  'google-search':            lazy(() => import('./diagrams/realworld/GoogleSearchDiagram')),
+  // Payments (wired after diagram files land)
+  'amazon-ecommerce':         lazy(() => import('./diagrams/realworld/AmazonEcommerceDiagram')),
+  'stripe':                   lazy(() => import('./diagrams/realworld/StripeDiagram')),
+  'robinhood':                lazy(() => import('./diagrams/realworld/RobinhoodDiagram')),
 };
 
 export default function RealWorldView() {
