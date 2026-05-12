@@ -1,6 +1,12 @@
 import { RealWorldSystem } from '../types';
 import { REALWORLD_AWS } from './realworld-aws';
 import { REALWORLD_PATTERNS } from './realworld-patterns';
+import { REALWORLD_STREAMING } from './realworld-streaming';
+import { REALWORLD_SOCIAL } from './realworld-social';
+import { REALWORLD_INFRA } from './realworld-infra';
+import { REALWORLD_MESSAGING_SYSTEMS } from './realworld-messaging';
+import { REALWORLD_SEARCH } from './realworld-search';
+import { REALWORLD_PAYMENTS } from './realworld-payments';
 
 const REALWORLD_BASE: RealWorldSystem[] = [
   {
@@ -1100,4 +1106,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
   },
 ];
 
-export const REALWORLD: RealWorldSystem[] = [...REALWORLD_BASE, ...REALWORLD_AWS, ...REALWORLD_PATTERNS];
+export const REALWORLD: RealWorldSystem[] = [
+  ...REALWORLD_BASE,
+  ...REALWORLD_AWS,
+  ...REALWORLD_PATTERNS,
+  ...REALWORLD_STREAMING,
+  ...REALWORLD_SOCIAL,
+  ...REALWORLD_INFRA,
+  ...REALWORLD_MESSAGING_SYSTEMS,
+  ...REALWORLD_SEARCH,
+  ...REALWORLD_PAYMENTS,
+];
