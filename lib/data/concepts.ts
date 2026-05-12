@@ -14,6 +14,7 @@ import { CONCEPTS_DESIGN_PATTERNS } from './concepts-design-patterns';
 import { CONCEPTS_ARCH_PATTERNS } from './concepts-arch-patterns';
 import { CONCEPTS_REDIS } from './concepts-redis';
 import { CONCEPTS_POSTGRES } from './concepts-postgres';
+import { CONCEPTS_AWS_SERVICES } from './concepts-aws-services';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -31,4 +32,5 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_ARCH_PATTERNS,
   ...CONCEPTS_REDIS,
   ...CONCEPTS_POSTGRES,
+  ...CONCEPTS_AWS_SERVICES,
 ];
