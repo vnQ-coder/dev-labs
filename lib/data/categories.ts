@@ -13,4 +13,5 @@ export const CATEGORIES: Category[] = [
   { id: 'arch-patterns', label: 'Architectural Patterns', color: '#f59e0b' },
   { id: 'redis',         label: 'Redis',                  color: '#dc2626' },
   { id: 'postgres',      label: 'PostgreSQL',             color: '#336791' },
+  { id: 'dsa',           label: 'Data Structures',        color: '#10b981' },
 ];
