@@ -1,13 +1,16 @@
 import { Concept } from '../types';
 
 export const MONGODB_PART1: Concept[] = [
+  // ─────────────────────────────────────────────────────────────────────────
+  // CONCEPT 1: MongoDB Document Model & Schema Design
+  // ─────────────────────────────────────────────────────────────────────────
   {
     id: 'mongodb-documents',
     cat: 'mongodb',
     color: '#00ed64',
     icon: '📄',
     title: 'MongoDB Document Model & Schema Design',
-    tag: 'A document is a JSON object on steroids — nested, flexible, and co-located with its data',
+    tag: "A document is a JSON object on steroids — nested, flexible, and co-located with its data",
     overview:
       'MongoDB stores data as BSON documents inside collections. Unlike relational tables, collections have no enforced schema — documents can carry different fields, enabling polymorphic data and iterative schema evolution. The 16MB document limit and the embedding vs referencing decision drive most data-modelling choices.',
     components: [
@@ -16,59 +19,39 @@ export const MONGODB_PART1: Concept[] = [
         icon: '🔢',
         role: "MongoDB's wire and storage format — a superset of JSON with richer types",
         detail:
-          'BSON adds types absent from JSON: Date, ObjectId, Binary, Decimal128, Int32, Int64. ObjectId is a 12-byte unique identifier: 4-byte Unix timestamp + 5-byte random value + 3-byte incrementing counter. Because the timestamp is the most significant bytes, ObjectIds are sortable by creation time without a separate timestamp field — `db.collection.find().sort({_id:1})` is effectively insertion-order sort.',
+          'BSON adds types absent from JSON: Date, ObjectId, Binary, Decimal128, Int32, Int64. ObjectId is a 12-byte unique identifier: 4-byte Unix timestamp + 5-byte random value + 3-byte incrementing counter. Because the timestamp is the most significant bytes, ObjectIds are sortable by creation time without a separate timestamp field — db.collection.find().sort({_id:1}) is effectively insertion-order sort.',
       },
       {
         name: 'Embedded Documents',
         icon: '📦',
         role: 'Sub-documents nested directly inside the parent for co-located, atomically readable data',
         detail:
-          'Access nested fields with dot notation: `user.address.city`. The entire document is read or written atomically — no joins needed. Best for data always accessed together (e.g., a user and their shipping address). Avoids the 16MB limit pitfall only when the embedded array or object is bounded in size.',
+          'Access nested fields with dot notation: user.address.city. The entire document is read or written atomically — no joins needed. Best for data always accessed together (e.g., a user and their shipping address). Avoids the 16MB limit pitfall only when the embedded array or object is bounded in size.',
       },
       {
         name: 'References ($lookup / DBRef)',
         icon: '🔗',
         role: 'Store the _id of another document instead of embedding — normalised, join-on-read',
         detail:
-          'Analogous to a foreign key. Enables normalisation and prevents unbounded document growth. Resolving a reference requires a second query or a `$lookup` aggregation stage. Use when data is accessed independently, shared across multiple parents, or when the child array could grow without bound (e.g., all tweets by a user).',
+          'Analogous to a foreign key. Enables normalisation and prevents unbounded document growth. Resolving a reference requires a second query or a $lookup aggregation stage. Use when data is accessed independently, shared across multiple parents, or when the child array could grow without bound (e.g., all tweets by a user).',
       },
       {
         name: 'Schema Validation ($jsonSchema)',
         icon: '✅',
         role: 'Optional but recommended guard that enforces document structure at the database layer',
         detail:
-          'Available from MongoDB 3.6+. `db.createCollection("users", { validator: { $jsonSchema: { required: ["email"], properties: { email: { bsonType: "string" } } } } })`. `validationAction: "error"` rejects non-conforming writes outright; `"warn"` logs a warning but accepts the document — useful during incremental migrations.',
+          'Available from MongoDB 3.6+. db.createCollection("users", { validator: { $jsonSchema: { required: ["email"], properties: { email: { bsonType: "string" } } } } }). validationAction "error" rejects non-conforming writes outright; "warn" logs a warning but accepts the document — useful during incremental migrations.',
       },
     ],
-    howItWorks: `MongoDB stores BSON documents in collections (analogous to relational tables) inside databases. There is no fixed schema — documents in the same collection can have entirely different fields, enabling polymorphism and schema-less iteration. This flexibility is the platform's greatest strength and its greatest risk: without discipline, collections become inconsistent bags of fields.
-
-**Document size limit — 16 MB**
-Every document must fit in 16 MB. This is rarely hit for normal records but becomes a hard constraint if you embed unbounded arrays (e.g., all comments on a viral post).
-
-**ObjectId anatomy**
-\`ObjectId("64a7b1c2d3e4f5a6b7c8d9e0")\` — 12 bytes:
-  • Bytes 0–3: Unix timestamp (seconds) — makes ObjectIds roughly sortable by creation time
-  • Bytes 4–8: 5-byte random value (per process/host)
-  • Bytes 9–11: 3-byte incrementing counter
-
-**Embedding vs Referencing — decision tree**
-
-Embed when:
-  • The child data is always accessed together with the parent (user + address)
-  • The relationship is 1-to-1 or 1-to-few with bounded growth
-  • You need atomic writes across parent + child in a single operation
-
-Reference when:
-  • Data is accessed independently of the parent
-  • The child array grows without bound (e.g., comments on a post)
-  • The child document is shared across multiple parents (many-to-many)
-  • You are modelling many-to-many relationships
-
-**Extended Reference Pattern**
-Embed only the frequently-accessed fields of a referenced document (name, thumbnail URL) to avoid a $lookup in the hot path, while keeping the authoritative copy in its own collection. Accept the trade-off: embedded copies can go stale and require an update-many when the source changes.
-
-**Bucket Pattern (time-series)**
-Instead of one document per measurement, store N measurements per bucket document (e.g., 100 readings). Dramatically reduces index overhead and improves scan efficiency for time-range queries.`,
+    howItWorks:
+      'MongoDB stores BSON documents in collections (analogous to relational tables) inside databases. There is no fixed schema — documents in the same collection can have entirely different fields, enabling polymorphism and schema-less iteration. This flexibility is the greatest strength and the greatest risk: without discipline, collections become inconsistent bags of fields.\n\n' +
+      'Document size limit — 16 MB: Every document must fit in 16 MB. This is rarely hit for normal records but becomes a hard constraint when embedding unbounded arrays (e.g., all comments on a viral post).\n\n' +
+      'ObjectId anatomy: ObjectId("64a7b1c2d3e4f5a6b7c8d9e0") is 12 bytes — Bytes 0-3: Unix timestamp (seconds), makes ObjectIds roughly sortable by creation time; Bytes 4-8: 5-byte random value (per process/host); Bytes 9-11: 3-byte incrementing counter.\n\n' +
+      'Embedding vs Referencing — decision tree:\n' +
+      'Embed when: the child data is always accessed together with the parent (user + address); the relationship is 1-to-1 or 1-to-few with bounded growth; you need atomic writes across parent + child in a single operation.\n' +
+      'Reference when: data is accessed independently of the parent; the child array grows without bound (e.g., comments on a post); the child document is shared across multiple parents; you are modelling many-to-many relationships.\n\n' +
+      'Extended Reference Pattern: Embed only the frequently-accessed fields of a referenced document (name, thumbnail URL) to avoid a $lookup in the hot path, while keeping the authoritative copy in its own collection. Accept the trade-off: embedded copies can go stale and require an update-many when the source changes.\n\n' +
+      'Bucket Pattern (time-series): Instead of one document per measurement, store N measurements per bucket document (e.g., 100 readings). Dramatically reduces index overhead and improves scan efficiency for time-range queries.',
     decision: {
       choose: [
         'Data that is naturally hierarchical or document-shaped (product catalogs, user profiles, content pages)',
@@ -112,7 +95,7 @@ Instead of one document per measurement, store N measurements per bucket documen
           'A new required field is added to the $jsonSchema validator, but existing documents predate the field and fail validation',
         symptom:
           'Reads succeed, but any update to an old document fails validation; application update paths error selectively',
-        fix: 'Set `validationAction: "warn"` before rolling out the new validator, run a migration script to back-fill the field on all existing documents, then switch back to `"error"` once migration completes.',
+        fix: 'Set validationAction to "warn" before rolling out the new validator, run a migration script to back-fill the field on all existing documents, then switch back to "error" once migration completes.',
         severity: 'high',
       },
     ],
@@ -127,11 +110,11 @@ Instead of one document per measurement, store N measurements per bucket documen
       types: [
         {
           n: '1-to-1 Embedding',
-          d: 'Embed a single sub-document directly (user → address). Atomic read, no join, bounded size.',
+          d: 'Embed a single sub-document directly (user to address). Atomic read, no join, bounded size.',
         },
         {
           n: '1-to-Few Embedding',
-          d: 'Embed a small, bounded array (order → line items). Best when items are always fetched with the parent.',
+          d: 'Embed a small, bounded array (order to line items). Best when items are always fetched with the parent.',
         },
         {
           n: '1-to-Many Referencing',
@@ -139,7 +122,7 @@ Instead of one document per measurement, store N measurements per bucket documen
         },
         {
           n: 'Many-to-Many Referencing',
-          d: 'Each side stores an array of the other side\'s _ids, or use an intermediary "junction" collection.',
+          d: "Each side stores an array of the other side's _ids, or use an intermediary junction collection.",
         },
         {
           n: 'Extended Reference Pattern',
@@ -173,7 +156,7 @@ Instead of one document per measurement, store N measurements per bucket documen
 // Pattern 1: Embed (1-to-few, always accessed together)
 // orders collection
 {
-  _id: ObjectId(...),
+  _id: ObjectId("..."),
   userId: ObjectId("..."),
   status: "shipped",
   items: [                        // embedded array — always needed with order
@@ -187,7 +170,7 @@ Instead of one document per measurement, store N measurements per bucket documen
 // Pattern 2: Reference (1-to-many, independent access)
 // comments collection — reference to post, not embedded
 {
-  _id: ObjectId(...),
+  _id: ObjectId("..."),
   postId: ObjectId("abc123"),    // reference — not embedded (unbounded growth)
   authorId: ObjectId("..."),
   text: "Great article!",
@@ -224,7 +207,7 @@ db.createCollection("users", {
 // ── CRUD OPERATIONS ───────────────────────────────────
 // Insert
 db.users.insertOne({ email: "bob@example.com", name: { first: "Bob", last: "Smith" }, createdAt: new Date() });
-db.users.insertMany([{ ... }, { ... }]);
+db.users.insertMany([{ /* ... */ }, { /* ... */ }]);
 
 // Find (query operators)
 db.users.find({ "address.city": "San Francisco" });           // dot notation
@@ -291,64 +274,58 @@ db.users.deleteMany({ status: "inactive", createdAt: { $lt: new Date("2020-01-01
         icon: '1️⃣',
         role: 'The simplest index — covers equality, range, and sort queries on one field',
         detail:
-          '`db.users.createIndex({ email: 1 })` — `1` means ascending, `-1` descending. MongoDB automatically creates a unique index on `_id`. Single field indexes support queries filtering or sorting on that one field and can be used in reverse (the planner traverses the B-tree backward for descending sorts).',
+          'db.users.createIndex({ email: 1 }) — 1 means ascending, -1 descending. MongoDB automatically creates a unique index on _id. Single field indexes support queries filtering or sorting on that one field and can be used in reverse (the planner traverses the B-tree backward for descending sorts).',
       },
       {
         name: 'Compound Index',
         icon: '🔢',
         role: 'Index on multiple fields — field order determines which query shapes benefit',
         detail:
-          '`db.users.createIndex({ status: 1, createdAt: -1, age: 1 })`. A compound index supports any prefix of its fields. Design using the ESR rule: Equality fields first (narrows the scan set), Sort fields in the middle (eliminates in-memory sort), Range fields last (range predicates cannot eliminate the sort step if they precede sort fields in the index).',
+          'db.users.createIndex({ status: 1, createdAt: -1, age: 1 }). A compound index supports any prefix of its fields. Design using the ESR rule: Equality fields first (reduces scan to matching subset), Sort fields in the middle (eliminates in-memory sort), Range fields last (range queries can use the index but stop the sort optimisation).',
       },
       {
         name: 'Multikey Index',
         icon: '🗃️',
         role: 'Automatically created when an indexed field contains an array — one index entry per element',
         detail:
-          'Enables `db.products.find({ tags: "electronics" })` to use an IXSCAN even though `tags` is an array. MongoDB creates one B-tree entry per array element. Limitation: a compound index cannot have two multikey (array) fields simultaneously — at most one array field per compound index.',
+          'Enables db.products.find({ tags: "electronics" }) to use an IXSCAN even though tags is an array. MongoDB creates one B-tree entry per array element. Limitation: a compound index cannot have two multikey (array) fields simultaneously — at most one array field per compound index.',
       },
       {
         name: 'Covered Query',
         icon: '⚡',
         role: 'A query fully satisfied from the index — zero document reads, maximum throughput',
         detail:
-          'A query is covered when ALL fields in the filter AND projection exist in the index (with `_id: 0` in the projection to exclude the non-indexed `_id`). MongoDB returns results directly from the index B-tree without fetching any collection documents — the fastest possible query execution path.',
+          'A query is covered when ALL fields in the filter AND projection exist in the index (with _id: 0 in the projection to exclude the non-indexed _id). MongoDB returns results directly from the index B-tree without fetching any collection documents — the fastest possible query execution path.',
       },
     ],
-    howItWorks: `MongoDB indexes are B-tree structures stored separately from the collection. Each index entry maps one or more field values to the \`_id\` of the matching document. The query planner chooses the "winning plan" by considering all candidate indexes, running trial executions, and caching the winner.
-
-**explain("executionStats") — reading the output**
-\`\`\`
-winningPlan.stage: "IXSCAN"          ✅ index used
-winningPlan.stage: "COLLSCAN"         ❌ full collection scan
-executionStats.totalKeysExamined      index entries scanned
-executionStats.totalDocsExamined      documents fetched from collection
-executionStats.totalDocsReturned      documents returned to client
-executionStats.executionTimeMillis    wall clock time
-\`\`\`
-Good selectivity: totalDocsExamined ≈ totalDocsReturned. Bad selectivity: examining 1M documents to return 10.
-
-**ESR Rule for compound index design**
-1. **E**quality fields first — fields tested with exact match ($eq, $in) go first; they reduce the working set to only matching documents
-2. **S**ort fields second — sort fields placed after equality fields allow the index to satisfy ORDER BY without an in-memory sort (SORT stage disappears from the plan)
-3. **R**ange fields last — range predicates ($gt, $lt, $between) go last; once a range boundary is hit, no further sort optimisation is possible
-
-**Specialised index types**
-- **Sparse** — only indexes documents where the field exists; smaller index footprint for optional fields
-- **Partial** — only indexes documents matching a filter expression (\`{ status: "active" }\`); ideal for "hot subset" queries
-- **TTL** — a background MongoDB task scans the TTL index every 60 seconds and deletes documents whose indexed date field is older than \`expireAfterSeconds\`; used for sessions, logs, caches
-- **Text** — inverted index for full-text search; supports \`$text\` operator with language-aware stemming; only one text index per collection
-- **2dsphere** — geospatial index for GeoJSON shapes; supports \`$near\`, \`$geoWithin\`, \`$geoIntersects\`
-- **Hashed** — uniform hash distribution; used as a shard key for even data distribution; only equality queries, no range queries
-
-**Write amplification**
-Every insert, update, or delete must update ALL indexes on the collection. A collection with 20 indexes has up to 20× write amplification. Use \`$indexStats\` to find indexes with zero usage and drop them.`,
+    howItWorks:
+      'MongoDB indexes are B-tree structures stored separately from the collection. Each index entry maps one or more field values to the _id of the matching document. The query planner chooses the winning plan by considering all candidate indexes, running trial executions, and caching the winner.\n\n' +
+      'explain("executionStats") — reading the output:\n' +
+      '  winningPlan.stage: "IXSCAN"  — index used (good)\n' +
+      '  winningPlan.stage: "COLLSCAN" — full collection scan (bad)\n' +
+      '  executionStats.totalKeysExamined — index entries scanned\n' +
+      '  executionStats.totalDocsExamined — documents fetched from collection\n' +
+      '  executionStats.totalDocsReturned — documents returned to client\n' +
+      '  executionStats.executionTimeMillis — wall clock time\n' +
+      'Good selectivity: totalDocsExamined approximates totalDocsReturned. Bad selectivity: examining 1M documents to return 10.\n\n' +
+      'ESR Rule for compound index design:\n' +
+      '1. Equality fields first — fields tested with exact match ($eq, $in) go first; they reduce the working set to only matching documents\n' +
+      '2. Sort fields second — sort fields placed after equality fields allow the index to satisfy ORDER BY without an in-memory sort (SORT stage disappears from the plan)\n' +
+      '3. Range fields last — range predicates ($gt, $lt, $between) go last; once a range boundary is hit, no further sort optimisation is possible\n\n' +
+      'Specialised index types:\n' +
+      '- Sparse — only indexes documents where the field exists; smaller index footprint for optional fields\n' +
+      '- Partial — only indexes documents matching a filter expression (e.g., { status: "active" }); ideal for hot-subset queries\n' +
+      '- TTL — a background MongoDB task scans the TTL index every 60 seconds and deletes documents whose indexed date field is older than expireAfterSeconds; used for sessions, logs, caches\n' +
+      '- Text — inverted index for full-text search; supports the $text operator with language-aware stemming; only one text index per collection\n' +
+      '- 2dsphere — geospatial index for GeoJSON shapes; supports $near, $geoWithin, $geoIntersects\n' +
+      '- Hashed — uniform hash distribution; used as a shard key for even data distribution; only equality queries, no range queries\n\n' +
+      'Write amplification: Every insert, update, or delete must update ALL indexes on the collection. A collection with 20 indexes has up to 20x write amplification. Use $indexStats to find indexes with zero usage and drop them.',
     decision: {
       choose: [
         'Add an index when explain() shows COLLSCAN on a frequently-executed query',
         'Use compound indexes for queries with equality + sort + range patterns — design with the ESR rule',
         'Use TTL indexes for automatic expiry instead of application-level cron jobs',
-        'Use partial indexes to index only the "hot" subset of documents (e.g., status: "active")',
+        'Use partial indexes to index only the hot subset of documents (e.g., status: "active")',
       ],
       avoid: [
         'Do not add an index for every field — write amplification degrades insert/update throughput',
@@ -376,24 +353,24 @@ Every insert, update, or delete must update ALL indexes on the collection. A col
         cause:
           'A collection accumulates 20+ indexes over time as engineers add them for new features without removing old ones; every insert and update must maintain all indexes',
         symptom:
-          'Insert and update latency climbs; replication lag increases on secondaries; `mongostat` shows high lock contention',
-        fix: 'Run `db.collection.aggregate([{ $indexStats: {} }])` to find indexes with `accesses.ops: 0`. Hide them first with `db.collection.hideIndex(name)` to verify no query regresses, then drop with `db.collection.dropIndex(name)`.',
+          'Insert and update latency climbs; replication lag increases on secondaries; mongostat shows high lock contention',
+        fix: 'Run db.collection.aggregate([{ $indexStats: {} }]) to find indexes with accesses.ops of 0. Hide them first with db.collection.hideIndex(name) to verify no query regresses, then drop with db.collection.dropIndex(name).',
         severity: 'high',
       },
       {
         name: 'Index not used due to wrong field order in compound index',
         cause:
-          'A compound index `{ age: 1, status: 1 }` exists, but a query filters only on `status`. MongoDB can only use index prefixes — a query on `status` alone cannot use this index and falls back to COLLSCAN.',
+          'A compound index { age: 1, status: 1 } exists, but a query filters only on status. MongoDB can only use index prefixes — a query on status alone cannot use this index and falls back to COLLSCAN.',
         symptom:
           'explain() shows COLLSCAN despite a compound index existing; queries on non-prefix fields are slow',
-        fix: 'Redesign the index to put the queried field first, or add a separate single-field index on `status`. Always verify with `explain("executionStats")` that the winning plan is IXSCAN.',
+        fix: 'Redesign the index to put the queried field first, or add a separate single-field index on status. Always verify with explain("executionStats") that the winning plan is IXSCAN.',
         severity: 'medium',
       },
     ],
     a: {
       v: "A book's index vs reading every page",
       t: 'The index at the back of a textbook tells you exactly which pages mention "sharding" — you jump straight there instead of reading all 800 pages',
-      tx: "Without an index MongoDB reads every document in the collection — a full collection scan. With an index it jumps directly to matching entries in the B-tree and fetches only those documents. The index is a sorted, separate data structure maintained in sync with the collection.",
+      tx: 'Without an index MongoDB reads every document in the collection — a full collection scan. With an index it jumps directly to matching entries in the B-tree and fetches only those documents. The index is a sorted, separate data structure maintained in sync with the collection.',
       s: 'Collection = book; documents = pages; index = alphabetical index at the back; COLLSCAN = reading every page; IXSCAN = jumping to the index entry.',
     },
     te: {
@@ -418,8 +395,8 @@ db.users.createIndex({ email: 1 }, { unique: true });
 
 // Compound — ESR rule: Equality, Sort, Range
 // Query: find active users, sort by createdAt desc, filter age range
-// Bad index:  { age: 1, status: 1, createdAt: -1 }  ← range first
-// Good index: { status: 1, createdAt: -1, age: 1 }  ← equality, sort, range
+// Bad index:  { age: 1, status: 1, createdAt: -1 }  <- range first
+// Good index: { status: 1, createdAt: -1, age: 1 }  <- equality, sort, range
 db.users.createIndex({ status: 1, createdAt: -1, age: 1 });
 
 // Multikey (array field)
@@ -471,7 +448,7 @@ db.users.find(
 db.users.find({ status: "active", age: { $gt: 18 } })
         .explain("executionStats");
 // Key fields to check:
-// winningPlan.stage: "IXSCAN" ✅ or "COLLSCAN" ❌
+// winningPlan.stage: "IXSCAN" (good) or "COLLSCAN" (bad)
 // executionStats.totalDocsExamined: lower = better selectivity
 // executionStats.totalDocsReturned: compare with examined
 // executionStats.executionTimeMillis: wall clock time
@@ -485,11 +462,11 @@ db.users.createIndex({ field: 1 }, { background: true });  // non-blocking (olde
 // MongoDB 4.2+: all index builds are non-blocking by default`,
       rw: {
         ex: [
-          'E-commerce search: compound index `{ category: 1, price: 1, rating: -1 }` (ESR) supports "all electronics under $500, sorted by rating" with an IXSCAN and no in-memory sort',
-          'Session management: TTL index on `{ createdAt: 1 }` with `expireAfterSeconds: 1800` auto-expires sessions after 30 minutes — no cron job needed',
-          'Location-based app: 2dsphere index on `{ location: "2dsphere" }` powers "find restaurants within 1km" queries with $near in sub-millisecond time',
+          'E-commerce search: compound index { category: 1, price: 1, rating: -1 } (ESR) supports "all electronics under $500, sorted by rating" with an IXSCAN and no in-memory sort',
+          'Session management: TTL index on { createdAt: 1 } with expireAfterSeconds: 1800 auto-expires sessions after 30 minutes — no cron job needed',
+          'Location-based app: 2dsphere index on the location field powers "find restaurants within 1km" queries with $near in sub-millisecond time',
         ],
-        cs: 'Uber uses compound indexes on their trip collection with the ESR rule to support driver-lookup queries: `{ city: 1, status: 1, startTime: -1 }` — city and status are equality fields (ESR E), startTime is the sort field (ESR S). This eliminates the in-memory sort on billions of trip records.',
+        cs: 'Uber uses compound indexes on their trip collection with the ESR rule to support driver-lookup queries: { city: 1, status: 1, startTime: -1 } — city and status are equality fields (ESR E), startTime is the sort field (ESR S). This eliminates the in-memory sort on billions of trip records.',
       },
     },
     interview: {
@@ -515,65 +492,57 @@ db.users.createIndex({ field: 1 }, { background: true });  // non-blocking (olde
     title: 'MongoDB Aggregation Pipeline',
     tag: 'A pipeline of stages — each stage transforms the document stream like a Unix pipe',
     overview:
-      'The aggregation pipeline is MongoDB\'s primary analytics and transformation engine. Documents flow through an ordered sequence of stages — each stage receives the output of the previous one and applies a transformation. It replaces SQL GROUP BY, JOIN, HAVING, and window functions in a single, composable API.',
+      "The aggregation pipeline is MongoDB's primary analytics and transformation engine. Documents flow through an ordered sequence of stages — each stage receives the output of the previous one and applies a transformation. It replaces SQL GROUP BY, JOIN, HAVING, and window functions in a single, composable API.",
     components: [
       {
         name: '$match',
         icon: '🔍',
         role: 'Filters the document stream — must be placed first to use collection indexes',
         detail:
-          'Equivalent to SQL WHERE. `{ $match: { status: "active", age: { $gte: 18 } } }`. Only $match and $sort at the very beginning of the pipeline can leverage collection indexes. A $match placed after any transforming stage (like $unwind or $group) cannot use indexes — it operates on the in-memory intermediate result.',
+          'Equivalent to SQL WHERE. { $match: { status: "active", age: { $gte: 18 } } }. Only $match and $sort at the very beginning of the pipeline can leverage collection indexes. A $match placed after any transforming stage (like $unwind or $group) cannot use indexes — it operates on the in-memory intermediate result.',
       },
       {
         name: '$group',
         icon: '📊',
         role: 'Groups documents by a key and applies accumulators — the SQL GROUP BY of MongoDB',
         detail:
-          '`{ $group: { _id: "$category", total: { $sum: "$price" }, count: { $sum: 1 }, avg: { $avg: "$price" } } }`. The `_id` field is the grouping key — set to `null` to aggregate all documents into one. Accumulators: $sum, $avg, $min, $max, $push (array of values), $addToSet (unique values array), $first, $last.',
+          '{ $group: { _id: "$category", total: { $sum: "$price" }, count: { $sum: 1 }, avg: { $avg: "$price" } } }. The _id field is the grouping key — set to null to aggregate all documents into one. Accumulators: $sum, $avg, $min, $max, $push (array of values), $addToSet (unique values array), $first, $last.',
       },
       {
         name: '$lookup',
         icon: '🔗',
         role: 'Left outer join from the current collection to another — the SQL JOIN of MongoDB',
         detail:
-          '`{ $lookup: { from: "products", localField: "productId", foreignField: "_id", as: "product" } }`. Returns an array field — use `$unwind` to flatten one document per matched result. Always index the `foreignField` in the joined collection or each lookup triggers a full scan of that collection per input document.',
+          '{ $lookup: { from: "products", localField: "productId", foreignField: "_id", as: "product" } }. Returns an array field — use $unwind to flatten to one document per matched result. Always index the foreignField in the joined collection or each lookup triggers a full scan of that collection per input document.',
       },
       {
         name: '$unwind',
         icon: '📤',
         role: 'Deconstructs an array field — outputs one document per array element',
         detail:
-          'Turns `{ tags: ["a", "b", "c"] }` into three separate documents, each with a single tag value. Essential before $group when grouping by an array field (e.g., "revenue per tag"). Use `preserveNullAndEmptyArrays: true` to keep documents with null or missing array fields in the stream instead of silently dropping them.',
+          'Turns { tags: ["a", "b", "c"] } into three separate documents, each with a single tag value. Essential before $group when grouping by an array field (e.g., "revenue per tag"). Use preserveNullAndEmptyArrays: true to keep documents with null or missing array fields in the stream instead of silently dropping them.',
       },
     ],
-    howItWorks: `**Pipeline execution model**
-Stages execute sequentially. The output document stream of stage N is the input stream of stage N+1. MongoDB processes documents in batches — it does not buffer the entire collection before starting the next stage.
-
-**Index usage rules**
-Only $match and $sort at the very beginning of the pipeline (before any transforming stage) can use collection indexes. This makes "filter early" the single most impactful pipeline optimisation: a $match at position 0 reduces the document stream before any expensive stage.
-
-**Memory limits**
-Each pipeline stage has a 100MB working set limit. This affects $group and $sort most — they must hold the intermediate result in memory. For large aggregations, pass \`{ allowDiskUse: true }\` to spill to disk. MongoDB 6.0+ uses a more efficient spill implementation.
-
-**MongoDB's automatic pipeline optimisations**
-- Merges consecutive $match stages into one
-- Moves a $match before a preceding $lookup when the $match references only fields from the local collection (filter before the join, not after)
-- Coalesces $sort + $limit into a top-K sort (keeps only K documents in memory instead of sorting everything)
-- Merges $project / $addFields when they are adjacent
-
-**Key stages beyond the four above**
-- **$project** — reshape documents: include/exclude fields, compute new fields with expressions
-- **$addFields** — add computed fields without removing existing ones ($project alternative)
-- **$sort** — order documents; can use index only at pipeline start
-- **$limit / $skip** — pagination; always combine $sort before $limit for deterministic results
-- **$bucket / $bucketAuto** — histogram grouping by numeric range; $bucketAuto distributes evenly
-- **$facet** — runs multiple independent sub-pipelines on the same input in parallel; returns one document with one field per sub-pipeline; ideal for search result pages (results + total count + facets in one query)
-- **$graphLookup** — recursive traversal of a collection (org charts, social graphs, product dependencies); specify maxDepth to prevent infinite recursion
-- **$merge** — writes pipeline output into a collection (upsert semantics); enables incremental materialized views
-- **$out** — replaces a collection atomically with pipeline output; simpler than $merge but non-incremental
-
-**$facet for search result pages**
-The classic pagination problem: "give me page 2 of results AND the total count AND the facet counts." Without $facet this requires three round trips. With $facet it is one aggregation with three sub-pipelines running on the same filtered input.`,
+    howItWorks:
+      'Pipeline execution model: Stages execute sequentially. The output document stream of stage N is the input stream of stage N+1. MongoDB processes documents in batches — it does not buffer the entire collection before starting the next stage.\n\n' +
+      'Index usage rules: Only $match and $sort at the very beginning of the pipeline (before any transforming stage) can use collection indexes. Placing $match first (filtering early) is the single most impactful pipeline optimisation: a $match at position 0 reduces the document stream before any expensive stage.\n\n' +
+      'Memory limits: Each pipeline stage has a 100MB working set limit. This affects $group and $sort most — they must hold the intermediate result in memory. For large aggregations, pass { allowDiskUse: true } to spill to disk. MongoDB 6.0+ uses a more efficient spill implementation.\n\n' +
+      "MongoDB's automatic pipeline optimisations:\n" +
+      '- Merges consecutive $match stages into one\n' +
+      '- Moves a $match before a preceding $lookup when the $match references only fields from the local collection (filter before the join, not after)\n' +
+      '- Coalesces $sort + $limit into a top-K sort (keeps only K documents in memory instead of sorting everything)\n' +
+      '- Merges $project / $addFields when they are adjacent\n\n' +
+      'Key stages beyond the four above:\n' +
+      '- $project — reshape documents: include/exclude fields, compute new fields with expressions\n' +
+      '- $addFields — add computed fields without removing existing ones ($project alternative)\n' +
+      '- $sort — order documents; can use index only at pipeline start\n' +
+      '- $limit / $skip — pagination; always combine $sort before $limit for deterministic results\n' +
+      '- $bucket / $bucketAuto — histogram grouping by numeric range; $bucketAuto distributes evenly\n' +
+      '- $facet — runs multiple independent sub-pipelines on the same input in parallel; returns one document with one field per sub-pipeline; ideal for search result pages (results + total count + facets in one query)\n' +
+      '- $graphLookup — recursive traversal of a collection (org charts, social graphs, product dependencies); specify maxDepth to prevent infinite recursion\n' +
+      '- $merge — writes pipeline output into a collection (upsert semantics); enables incremental materialized views\n' +
+      '- $out — replaces a collection atomically with pipeline output; simpler than $merge but non-incremental\n\n' +
+      '$facet for search result pages: The classic pagination problem — "give me page 2 of results AND the total count AND the facet counts." Without $facet this requires three round trips. With $facet it is one aggregation with three sub-pipelines running on the same filtered input.',
     decision: {
       choose: [
         'Use $match as the first stage whenever possible — reduces document count before expensive stages',
@@ -582,7 +551,7 @@ The classic pagination problem: "give me page 2 of results AND the total count A
         'Use $graphLookup for recursive relationship traversal (org charts, category hierarchies, dependency graphs)',
       ],
       avoid: [
-        'Do not place $lookup on a foreignField with no index — causes N × full-collection-scan',
+        'Do not place $lookup on a foreignField with no index — causes N times full-collection-scan per input document',
         'Do not run large $group or $sort stages without allowDiskUse: true on big collections',
         'Do not use $out for incremental updates — it replaces the entire collection; use $merge instead',
       ],
@@ -608,7 +577,7 @@ The classic pagination problem: "give me page 2 of results AND the total count A
           'For each document entering the $lookup stage, MongoDB performs a query on the foreign collection using the foreignField value. Without an index on foreignField, each lookup triggers a full collection scan.',
         symptom:
           'Aggregation time grows quadratically with collection size; slow query log shows repeated COLLSCANs on the foreign collection for every input document',
-        fix: 'Create an index on the foreignField in the joined collection before using $lookup: `db.products.createIndex({ _id: 1 })` is automatic, but custom foreignFields need explicit indexes. Verify with explain("executionStats") on the aggregation.',
+        fix: 'Create an index on the foreignField in the joined collection before using $lookup. Verify with explain("executionStats") on the aggregation that the lookup stage uses an IXSCAN.',
         severity: 'high',
       },
       {
@@ -617,14 +586,14 @@ The classic pagination problem: "give me page 2 of results AND the total count A
           'A $group or $sort stage on a large unfiltered collection accumulates more than 100MB of intermediate documents in memory',
         symptom:
           'Aggregation throws "Exceeded memory limit for $group / $sort" error; pipeline fails entirely',
-        fix: 'Add `{ allowDiskUse: true }` to the aggregate call. Restructure to add a $match or $project early in the pipeline to reduce document size/count before the expensive stage. For recurring analytics, pre-aggregate with $merge into a summary collection.',
+        fix: 'Add { allowDiskUse: true } to the aggregate call. Restructure to add a $match or $project early in the pipeline to reduce document size/count before the expensive stage. For recurring analytics, pre-aggregate with $merge into a summary collection.',
         severity: 'high',
       },
     ],
     a: {
       v: 'A factory assembly line',
       t: 'Raw materials (documents) enter at one end; each workstation (stage) does one transformation; finished goods (results) come out the other end',
-      tx: 'Each stage in the aggregation pipeline does exactly one job: $match is the quality filter that rejects bad parts early, $unwind is the disassembler that splits kits into individual components, $group is the counter that tallies components by type, $project is the packager that labels the final box. No stage knows what came before or after — it just transforms its input stream.',
+      tx: '$match is the quality filter that rejects bad parts early, $unwind is the disassembler that splits kits into individual components, $group is the counter that tallies components by type, $project is the packager that labels the final box. No stage knows what came before or after — it just transforms its input stream.',
       s: 'Pipeline = assembly line; stages = workstations; documents = parts; $match = QA filter; $group = batch counter; $lookup = parts sourcing from another warehouse; $out/$merge = shipping dock.',
     },
     te: {
@@ -643,9 +612,9 @@ The classic pagination problem: "give me page 2 of results AND the total count A
         { n: '$graphLookup', d: 'Recursive collection traversal. Org charts, category trees.' },
         { n: '$merge / $out', d: 'Write pipeline output to a collection. Materialized views.' },
       ],
-      when: 'Use the aggregation pipeline for any analytics, reporting, or transformation that goes beyond a simple find(). Use it in preference to application-side aggregation — pushing computation to the database avoids transferring large document sets over the network.',
+      when: 'Use the aggregation pipeline for any analytics, reporting, or transformation that goes beyond a simple find(). Prefer pushing computation to the database over application-side aggregation — it avoids transferring large document sets over the network.',
       trade:
-        'Aggregation pipelines are powerful but can be memory-intensive. Filter early ($match first) and project away unneeded fields early to keep intermediate documents small. Complex pipelines can be hard to debug — use `db.collection.aggregate([...]).explain("executionStats")` to inspect stage-by-stage execution.',
+        'Aggregation pipelines are powerful but can be memory-intensive. Filter early ($match first) and project away unneeded fields early to keep intermediate documents small. Complex pipelines can be hard to debug — use db.collection.aggregate([...]).explain("executionStats") to inspect stage-by-stage execution.',
       code: `// ── BASIC GROUP + MATCH ───────────────────────────────
 // "Total revenue by category for active orders in 2024"
 db.orders.aggregate([
@@ -761,7 +730,10 @@ db.employees.aggregate([
 db.orders.aggregate([
   { $match: { createdAt: { $gte: new Date(Date.now() - 86400000) } } },  // last 24h
   { $group: {
-    _id: { date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, category: "$category" },
+    _id: {
+      date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+      category: "$category"
+    },
     revenue: { $sum: "$total" },
     orders: { $sum: 1 }
   }},
@@ -778,12 +750,12 @@ db.orders.aggregate([
           'Reporting dashboard: nightly $merge job aggregates daily revenue by category into a summary collection; the dashboard reads the summary instead of re-running the full aggregation on millions of orders',
           'HR org chart: $graphLookup with maxDepth: 10 recursively builds the full management chain for any employee — equivalent to a recursive CTE in SQL',
         ],
-        cs: 'LinkedIn uses MongoDB aggregation pipelines for their "People You May Know" feature recommendations: $graphLookup traverses the connection graph up to depth 2 to find second-degree connections, $group counts mutual connections, and $sort + $limit returns the top 10 ranked suggestions — all within the database without application-side graph traversal.',
+        cs: 'LinkedIn uses MongoDB aggregation pipelines for People You May Know recommendations: $graphLookup traverses the connection graph up to depth 2 to find second-degree connections, $group counts mutual connections, and $sort + $limit returns the top 10 ranked suggestions — all within the database without application-side graph traversal.',
       },
     },
     interview: {
       q: 'How would you write an aggregation to get the top 5 products by revenue per category, with the total count per category alongside the product list?',
-      a: 'Use a $facet or a two-stage approach. First $match to filter relevant documents, then $unwind the items array, then $group twice: first by `{ category, productId }` to get per-product revenue, then $sort and $limit within a $group using $push to collect the top products per category. For the count alongside, $facet lets you run a "top products per category" sub-pipeline and a "count per category" sub-pipeline on the same filtered input simultaneously, returning both in one result document.',
+      a: 'Use $facet or a two-stage approach. First $match to filter relevant documents, then $unwind the items array, then $group twice: first by { category, productId } to get per-product revenue, then $sort and $limit within a $group using $push to collect the top products per category. For the count alongside, $facet lets you run a top-products-per-category sub-pipeline and a count-per-category sub-pipeline on the same filtered input simultaneously, returning both in one result document.',
       fu: [
         'What is the 100MB stage memory limit and how do you work around it?',
         'Why must $match be placed before $lookup for index use, and what does MongoDB do automatically to enforce this?',
