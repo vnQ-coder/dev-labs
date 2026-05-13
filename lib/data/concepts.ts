@@ -20,6 +20,8 @@ import { CONCEPTS_GIT } from './concepts-git';
 import { CONCEPTS_GHA } from './concepts-gha';
 import { CONCEPTS_MONGODB } from './concepts-mongodb';
 import { CONCEPTS_POSTGRES_ADVANCED } from './concepts-postgres-advanced';
+import { CONCEPTS_OOP } from './concepts-oop';
+import { CONCEPTS_SOLID } from './concepts-solid';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -43,4 +45,6 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_GHA,
   ...CONCEPTS_MONGODB,
   ...CONCEPTS_POSTGRES_ADVANCED,
+  ...CONCEPTS_OOP,
+  ...CONCEPTS_SOLID,
 ];
