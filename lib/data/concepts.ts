@@ -16,6 +16,7 @@ import { CONCEPTS_REDIS } from './concepts-redis';
 import { CONCEPTS_POSTGRES } from './concepts-postgres';
 import { CONCEPTS_AWS_SERVICES } from './concepts-aws-services';
 import { CONCEPTS_DSA } from './concepts-dsa';
+import { CONCEPTS_GIT } from './concepts-git';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -35,4 +36,5 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_POSTGRES,
   ...CONCEPTS_AWS_SERVICES,
   ...CONCEPTS_DSA,
+  ...CONCEPTS_GIT,
 ];

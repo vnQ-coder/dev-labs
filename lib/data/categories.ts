@@ -14,4 +14,6 @@ export const CATEGORIES: Category[] = [
   { id: 'redis',         label: 'Redis',                  color: '#dc2626' },
   { id: 'postgres',      label: 'PostgreSQL',             color: '#336791' },
   { id: 'dsa',           label: 'Data Structures',        color: '#10b981' },
+  { id: 'git',           label: 'Git & Version Control',  color: '#f05032' },
+  { id: 'github-actions', label: 'GitHub Actions / CI-CD', color: '#2088ff' },
 ];
