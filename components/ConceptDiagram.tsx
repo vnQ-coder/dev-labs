@@ -100,6 +100,17 @@ const COMPONENT_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.R
   'postgres-clustered-indexes': lazy(() => import('./diagrams/PostgresClusteredIndexesDiagram')),
   'postgres-window-functions':  lazy(() => import('./diagrams/PostgresWindowFunctionsDiagram')),
   'postgres-ctes-recursive':    lazy(() => import('./diagrams/PostgresCTEsDiagram')),
+  // OOP Pillars
+  'oop-encapsulation':  lazy(() => import('./diagrams/OOPEncapsulationDiagram')),
+  'oop-abstraction':    lazy(() => import('./diagrams/OOPAbstractionDiagram')),
+  'oop-inheritance':    lazy(() => import('./diagrams/OOPInheritanceDiagram')),
+  'oop-polymorphism':   lazy(() => import('./diagrams/OOPPolymorphismDiagram')),
+  // SOLID Principles
+  'solid-srp': lazy(() => import('./diagrams/SOLIDSRPDiagram')),
+  'solid-ocp': lazy(() => import('./diagrams/SOLIDOCPDiagram')),
+  'solid-lsp': lazy(() => import('./diagrams/SOLIDLSPDiagram')),
+  'solid-isp': lazy(() => import('./diagrams/SOLIDISPDiagram')),
+  'solid-dip': lazy(() => import('./diagrams/SOLIDDIPDiagram')),
 };
 
 /* ── Invisible handle style (layout anchors only) ─────────────── */

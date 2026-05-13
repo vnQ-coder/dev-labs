@@ -113,6 +113,17 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   'postgres-clustered-indexes': lazy(() => import('@/components/diagrams/PostgresClusteredIndexesDiagram')),
   'postgres-window-functions':  lazy(() => import('@/components/diagrams/PostgresWindowFunctionsDiagram')),
   'postgres-ctes-recursive':    lazy(() => import('@/components/diagrams/PostgresCTEsDiagram')),
+  // OOP Pillars
+  'oop-encapsulation':  lazy(() => import('@/components/diagrams/OOPEncapsulationDiagram')),
+  'oop-abstraction':    lazy(() => import('@/components/diagrams/OOPAbstractionDiagram')),
+  'oop-inheritance':    lazy(() => import('@/components/diagrams/OOPInheritanceDiagram')),
+  'oop-polymorphism':   lazy(() => import('@/components/diagrams/OOPPolymorphismDiagram')),
+  // SOLID Principles
+  'solid-srp': lazy(() => import('@/components/diagrams/SOLIDSRPDiagram')),
+  'solid-ocp': lazy(() => import('@/components/diagrams/SOLIDOCPDiagram')),
+  'solid-lsp': lazy(() => import('@/components/diagrams/SOLIDLSPDiagram')),
+  'solid-isp': lazy(() => import('@/components/diagrams/SOLIDISPDiagram')),
+  'solid-dip': lazy(() => import('@/components/diagrams/SOLIDDIPDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {
