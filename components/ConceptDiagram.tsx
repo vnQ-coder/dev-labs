@@ -111,6 +111,54 @@ const COMPONENT_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.R
   'solid-lsp': lazy(() => import('./diagrams/SOLIDLSPDiagram')),
   'solid-isp': lazy(() => import('./diagrams/SOLIDISPDiagram')),
   'solid-dip': lazy(() => import('./diagrams/SOLIDDIPDiagram')),
+  // JavaScript
+  'js-event-loop':  lazy(() => import('./diagrams/JSEventLoopDiagram')),
+  'js-closures':    lazy(() => import('./diagrams/JSClosuresDiagram')),
+  'js-async':       lazy(() => import('./diagrams/JSAsyncDiagram')),
+  'js-prototypes':  lazy(() => import('./diagrams/JSPrototypeDiagram')),
+  'js-this':        lazy(() => import('./diagrams/JSThisDiagram')),
+  // Node.js
+  'node-event-loop': lazy(() => import('./diagrams/NodeEventLoopDiagram')),
+  'node-streams':    lazy(() => import('./diagrams/NodeStreamsDiagram')),
+  'node-cluster':    lazy(() => import('./diagrams/NodeClusterDiagram')),
+  'node-modules':    lazy(() => import('./diagrams/NodeModulesDiagram')),
+  'node-security':   lazy(() => import('./diagrams/NodeSecurityDiagram')),
+  // React.js
+  'react-virtual-dom':  lazy(() => import('./diagrams/ReactVirtualDOMDiagram')),
+  'react-hooks':        lazy(() => import('./diagrams/ReactHooksDiagram')),
+  'react-state':        lazy(() => import('./diagrams/ReactStateDiagram')),
+  'react-performance':  lazy(() => import('./diagrams/ReactPerformanceDiagram')),
+  'react-patterns':     lazy(() => import('./diagrams/ReactPatternsDiagram')),
+  // Next.js
+  'nextjs-rendering':      lazy(() => import('./diagrams/NextJSRenderingDiagram')),
+  'nextjs-app-router':     lazy(() => import('./diagrams/NextJSAppRouterDiagram')),
+  'nextjs-data-fetching':  lazy(() => import('./diagrams/NextJSDataFetchingDiagram')),
+  'nextjs-routing':        lazy(() => import('./diagrams/NextJSRoutingDiagram')),
+  'nextjs-optimization':   lazy(() => import('./diagrams/NextJSOptimizationDiagram')),
+  // NestJS
+  'nestjs-architecture':       lazy(() => import('./diagrams/NestJSArchitectureDiagram')),
+  'nestjs-request-lifecycle':  lazy(() => import('./diagrams/NestJSRequestLifecycleDiagram')),
+  'nestjs-decorators':         lazy(() => import('./diagrams/NestJSDecoratorsDiagram')),
+  'nestjs-microservices':      lazy(() => import('./diagrams/NestJSMicroservicesDiagram')),
+  'nestjs-testing':            lazy(() => import('./diagrams/NestJSTestingDiagram')),
+  // FastAPI
+  'fastapi-fundamentals':          lazy(() => import('./diagrams/FastAPIFundamentalsDiagram')),
+  'fastapi-dependency-injection':  lazy(() => import('./diagrams/FastAPIDIDiagram')),
+  'fastapi-pydantic':              lazy(() => import('./diagrams/FastAPIPydanticDiagram')),
+  'fastapi-async':                 lazy(() => import('./diagrams/FastAPIAsyncDiagram')),
+  'fastapi-auth':                  lazy(() => import('./diagrams/FastAPIAuthDiagram')),
+  // Python
+  'py-gil':         lazy(() => import('./diagrams/PythonGILDiagram')),
+  'py-generators':  lazy(() => import('./diagrams/PythonGeneratorsDiagram')),
+  'py-decorators':  lazy(() => import('./diagrams/PythonDecoratorsDiagram')),
+  'py-async':       lazy(() => import('./diagrams/PythonAsyncDiagram')),
+  'py-data-model':  lazy(() => import('./diagrams/PythonDataModelDiagram')),
+  // Laravel
+  'laravel-service-container': lazy(() => import('./diagrams/LaravelServiceContainerDiagram')),
+  'laravel-eloquent':          lazy(() => import('./diagrams/LaravelEloquentDiagram')),
+  'laravel-queues':            lazy(() => import('./diagrams/LaravelQueuesDiagram')),
+  'laravel-auth':              lazy(() => import('./diagrams/LaravelAuthDiagram')),
+  'laravel-middleware':        lazy(() => import('./diagrams/LaravelMiddlewareDiagram')),
 };
 
 /* ── Invisible handle style (layout anchors only) ─────────────── */

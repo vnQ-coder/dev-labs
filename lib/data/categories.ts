@@ -19,4 +19,12 @@ export const CATEGORIES: Category[] = [
   { id: 'github-actions', label: 'GitHub Actions / CI-CD', color: '#2088ff' },
   { id: 'oop',            label: 'OOP Pillars',            color: '#f472b6' },
   { id: 'solid',          label: 'SOLID Principles',       color: '#34d399' },
+  { id: 'javascript',     label: 'JavaScript',             color: '#f7df1e' },
+  { id: 'nodejs',         label: 'Node.js',                color: '#68a063' },
+  { id: 'react',          label: 'React.js',               color: '#61dafb' },
+  { id: 'nextjs',         label: 'Next.js',                color: '#7c3aed' },
+  { id: 'nestjs',         label: 'NestJS',                 color: '#e0234e' },
+  { id: 'fastapi',        label: 'FastAPI',                color: '#009688' },
+  { id: 'python',         label: 'Python',                 color: '#3776ab' },
+  { id: 'laravel',        label: 'Laravel',                color: '#ff2d20' },
 ];

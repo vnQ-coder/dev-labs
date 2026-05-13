@@ -22,6 +22,14 @@ import { CONCEPTS_MONGODB } from './concepts-mongodb';
 import { CONCEPTS_POSTGRES_ADVANCED } from './concepts-postgres-advanced';
 import { CONCEPTS_OOP } from './concepts-oop';
 import { CONCEPTS_SOLID } from './concepts-solid';
+import { CONCEPTS_JS } from './concepts-js';
+import { CONCEPTS_NODEJS } from './concepts-nodejs';
+import { CONCEPTS_REACT } from './concepts-react';
+import { CONCEPTS_NEXTJS } from './concepts-nextjs';
+import { CONCEPTS_NESTJS } from './concepts-nestjs';
+import { CONCEPTS_FASTAPI } from './concepts-fastapi';
+import { CONCEPTS_PYTHON } from './concepts-python';
+import { CONCEPTS_LARAVEL } from './concepts-laravel';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -47,4 +55,12 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_POSTGRES_ADVANCED,
   ...CONCEPTS_OOP,
   ...CONCEPTS_SOLID,
+  ...CONCEPTS_JS,
+  ...CONCEPTS_NODEJS,
+  ...CONCEPTS_REACT,
+  ...CONCEPTS_NEXTJS,
+  ...CONCEPTS_NESTJS,
+  ...CONCEPTS_FASTAPI,
+  ...CONCEPTS_PYTHON,
+  ...CONCEPTS_LARAVEL,
 ];

@@ -124,6 +124,54 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   'solid-lsp': lazy(() => import('@/components/diagrams/SOLIDLSPDiagram')),
   'solid-isp': lazy(() => import('@/components/diagrams/SOLIDISPDiagram')),
   'solid-dip': lazy(() => import('@/components/diagrams/SOLIDDIPDiagram')),
+  // JavaScript
+  'js-event-loop':  lazy(() => import('@/components/diagrams/JSEventLoopDiagram')),
+  'js-closures':    lazy(() => import('@/components/diagrams/JSClosuresDiagram')),
+  'js-async':       lazy(() => import('@/components/diagrams/JSAsyncDiagram')),
+  'js-prototypes':  lazy(() => import('@/components/diagrams/JSPrototypeDiagram')),
+  'js-this':        lazy(() => import('@/components/diagrams/JSThisDiagram')),
+  // Node.js
+  'node-event-loop': lazy(() => import('@/components/diagrams/NodeEventLoopDiagram')),
+  'node-streams':    lazy(() => import('@/components/diagrams/NodeStreamsDiagram')),
+  'node-cluster':    lazy(() => import('@/components/diagrams/NodeClusterDiagram')),
+  'node-modules':    lazy(() => import('@/components/diagrams/NodeModulesDiagram')),
+  'node-security':   lazy(() => import('@/components/diagrams/NodeSecurityDiagram')),
+  // React.js
+  'react-virtual-dom':  lazy(() => import('@/components/diagrams/ReactVirtualDOMDiagram')),
+  'react-hooks':        lazy(() => import('@/components/diagrams/ReactHooksDiagram')),
+  'react-state':        lazy(() => import('@/components/diagrams/ReactStateDiagram')),
+  'react-performance':  lazy(() => import('@/components/diagrams/ReactPerformanceDiagram')),
+  'react-patterns':     lazy(() => import('@/components/diagrams/ReactPatternsDiagram')),
+  // Next.js
+  'nextjs-rendering':      lazy(() => import('@/components/diagrams/NextJSRenderingDiagram')),
+  'nextjs-app-router':     lazy(() => import('@/components/diagrams/NextJSAppRouterDiagram')),
+  'nextjs-data-fetching':  lazy(() => import('@/components/diagrams/NextJSDataFetchingDiagram')),
+  'nextjs-routing':        lazy(() => import('@/components/diagrams/NextJSRoutingDiagram')),
+  'nextjs-optimization':   lazy(() => import('@/components/diagrams/NextJSOptimizationDiagram')),
+  // NestJS
+  'nestjs-architecture':       lazy(() => import('@/components/diagrams/NestJSArchitectureDiagram')),
+  'nestjs-request-lifecycle':  lazy(() => import('@/components/diagrams/NestJSRequestLifecycleDiagram')),
+  'nestjs-decorators':         lazy(() => import('@/components/diagrams/NestJSDecoratorsDiagram')),
+  'nestjs-microservices':      lazy(() => import('@/components/diagrams/NestJSMicroservicesDiagram')),
+  'nestjs-testing':            lazy(() => import('@/components/diagrams/NestJSTestingDiagram')),
+  // FastAPI
+  'fastapi-fundamentals':          lazy(() => import('@/components/diagrams/FastAPIFundamentalsDiagram')),
+  'fastapi-dependency-injection':  lazy(() => import('@/components/diagrams/FastAPIDIDiagram')),
+  'fastapi-pydantic':              lazy(() => import('@/components/diagrams/FastAPIPydanticDiagram')),
+  'fastapi-async':                 lazy(() => import('@/components/diagrams/FastAPIAsyncDiagram')),
+  'fastapi-auth':                  lazy(() => import('@/components/diagrams/FastAPIAuthDiagram')),
+  // Python
+  'py-gil':         lazy(() => import('@/components/diagrams/PythonGILDiagram')),
+  'py-generators':  lazy(() => import('@/components/diagrams/PythonGeneratorsDiagram')),
+  'py-decorators':  lazy(() => import('@/components/diagrams/PythonDecoratorsDiagram')),
+  'py-async':       lazy(() => import('@/components/diagrams/PythonAsyncDiagram')),
+  'py-data-model':  lazy(() => import('@/components/diagrams/PythonDataModelDiagram')),
+  // Laravel
+  'laravel-service-container': lazy(() => import('@/components/diagrams/LaravelServiceContainerDiagram')),
+  'laravel-eloquent':          lazy(() => import('@/components/diagrams/LaravelEloquentDiagram')),
+  'laravel-queues':            lazy(() => import('@/components/diagrams/LaravelQueuesDiagram')),
+  'laravel-auth':              lazy(() => import('@/components/diagrams/LaravelAuthDiagram')),
+  'laravel-middleware':        lazy(() => import('@/components/diagrams/LaravelMiddlewareDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {
