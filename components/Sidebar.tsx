@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  FlaskConical, Search, Globe as GlobeIcon, Trophy, BookOpen, Sparkles,
+  FlaskConical, Search, Globe as GlobeIcon, Trophy, BookOpen, Sparkles, ChevronRight,
 } from 'lucide-react';
 import { CONCEPTS } from '@/lib/data/concepts';
 import { CATEGORIES } from '@/lib/data/categories';
@@ -18,10 +18,52 @@ interface SidebarProps {
   onOpenPalette?: () => void;
 }
 
+const SIDEBAR_GROUPS = [
+  {
+    id: 'system-design',
+    label: 'System Design',
+    emoji: '🏗️',
+    cats: ['foundation', 'performance', 'data', 'async', 'reliability', 'messaging', 'cloud', 'networking'],
+  },
+  {
+    id: 'patterns',
+    label: 'Patterns & Principles',
+    emoji: '🎨',
+    cats: ['patterns', 'arch-patterns', 'oop', 'solid'],
+  },
+  {
+    id: 'databases',
+    label: 'Databases',
+    emoji: '🗄️',
+    cats: ['redis', 'postgres', 'mongodb', 'dsa'],
+  },
+  {
+    id: 'backend',
+    label: 'Backend',
+    emoji: '⚙️',
+    cats: ['nodejs', 'nestjs', 'fastapi', 'python', 'laravel'],
+  },
+  {
+    id: 'frontend',
+    label: 'Frontend',
+    emoji: '⚛️',
+    cats: ['javascript', 'react', 'nextjs'],
+  },
+  {
+    id: 'devops',
+    label: 'DevOps & Tools',
+    emoji: '🔧',
+    cats: ['git', 'github-actions'],
+  },
+] as const;
+
 export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   const router = useRouter();
   const params = useSearchParams();
   const [activeCat, setActiveCat] = useState<string>('all');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    new Set(['system-design'])
+  );
   const { isViewed, count } = useProgress();
   const { completedCount, totalConcepts, path } = useLearningPath();
   const [profile, setProfile] = useState<ReturnType<typeof loadProfile>>(null);
@@ -37,6 +79,30 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   function navigate(href: string) {
     router.push(href);
     onClose?.();
+  }
+
+  function toggleGroup(groupId: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  // Build a lookup: catId -> Category object
+  const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+
+  // Count concepts per category
+  function catCount(catId: string) {
+    return CONCEPTS.filter(c => c.cat === catId).length;
+  }
+
+  // Count concepts per group
+  function groupCount(groupId: string) {
+    const group = SIDEBAR_GROUPS.find(g => g.id === groupId);
+    if (!group) return 0;
+    return group.cats.reduce((sum, catId) => sum + catCount(catId), 0);
   }
 
   return (
@@ -98,115 +164,209 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
         </button>
       </div>
 
-      {/* Category filter pills */}
-      <div
-        className="px-3 pb-2.5 flex-shrink-0"
-        style={{ overflowX: 'auto', scrollbarWidth: 'none' }}
-      >
-        <div className="flex gap-1.5 min-w-max">
+      {/* Scrollable area: accordion + concept list */}
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+
+        {/* All concepts button */}
+        <div className="px-2 pb-1">
           <button
             onClick={() => setActiveCat('all')}
-            className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0"
+            className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors"
             style={{
-              background: activeCat === 'all' ? 'var(--accent)' : 'var(--s3)',
+              background: activeCat === 'all' ? 'var(--accent)' : 'transparent',
               color: activeCat === 'all' ? '#0d1117' : 'var(--tm)',
-              border: activeCat === 'all' ? '1px solid var(--accent)' : '1px solid var(--b0)',
+            }}
+            onMouseEnter={e => {
+              if (activeCat !== 'all') e.currentTarget.style.background = 'var(--s3)';
+            }}
+            onMouseLeave={e => {
+              if (activeCat !== 'all') e.currentTarget.style.background = 'transparent';
             }}
           >
-            All
-          </button>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCat(activeCat === cat.id ? 'all' : cat.id)}
-              className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0"
+            <span className="text-xs font-semibold">All Concepts</span>
+            <span
+              className="text-xs rounded px-1"
               style={{
-                background: activeCat === cat.id ? `${cat.color}18` : 'var(--s3)',
-                color: activeCat === cat.id ? cat.color : 'var(--tm)',
-                border: activeCat === cat.id ? `1px solid ${cat.color}40` : '1px solid var(--b0)',
+                background: activeCat === 'all' ? 'rgba(0,0,0,0.15)' : 'var(--s3)',
+                color: activeCat === 'all' ? '#0d1117' : 'var(--td)',
+                fontSize: 10,
               }}
             >
-              {cat.label}
-            </button>
-          ))}
+              {CONCEPTS.length}
+            </span>
+          </button>
         </div>
-      </div>
 
-      {/* Concept list */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ scrollbarWidth: 'thin' }}>
-        {CATEGORIES.filter(cat => activeCat === 'all' || cat.id === activeCat).map(cat => {
-          const items = filtered.filter(c => c.cat === cat.id);
-          if (items.length === 0) return null;
-          return (
-            <div key={cat.id} className="mb-3">
-              <div
-                className="section-label px-2 py-1.5 mb-0.5"
-                style={{ color: cat.color }}
-              >
-                {cat.label}
-              </div>
-              {items.map(c => {
-                const viewed = isViewed(c.id);
-                const active = currentConcept === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => navigate(`/lab?concept=${c.id}`)}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors mb-0.5"
+        {/* Group accordion */}
+        <div className="px-2 pb-2">
+          {SIDEBAR_GROUPS.map(group => {
+            const isExpanded = expandedGroups.has(group.id);
+            const total = groupCount(group.id);
+            return (
+              <div key={group.id} className="mb-0.5">
+                {/* Group header */}
+                <button
+                  onClick={() => toggleGroup(group.id)}
+                  className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-colors"
+                  style={{ color: 'var(--tm)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--s3)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <ChevronRight
+                    size={13}
+                    strokeWidth={2.5}
                     style={{
-                      background: active ? `${cat.color}10` : 'transparent',
-                      border: active ? `1px solid ${cat.color}30` : '1px solid transparent',
+                      flexShrink: 0,
+                      color: 'var(--td)',
+                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 180ms ease',
                     }}
-                    onMouseEnter={e => {
-                      if (!active) e.currentTarget.style.background = 'var(--s3)';
-                    }}
-                    onMouseLeave={e => {
-                      if (!active) e.currentTarget.style.background = 'transparent';
+                  />
+                  <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{group.emoji}</span>
+                  <span className="flex-1 text-xs font-semibold truncate" style={{ color: 'var(--t)' }}>
+                    {group.label}
+                  </span>
+                  <span
+                    className="text-xs rounded px-1 flex-shrink-0"
+                    style={{
+                      background: 'var(--s3)',
+                      color: 'var(--td)',
+                      fontSize: 10,
                     }}
                   >
-                    {/* Icon wrapper */}
-                    <div
-                      className="flex items-center justify-center rounded-md flex-shrink-0"
-                      style={{
-                        width: 22,
-                        height: 22,
-                        background: active ? `${cat.color}18` : 'var(--s3)',
-                        border: active ? `1px solid ${cat.color}30` : '1px solid transparent',
-                      }}
-                    >
-                      <ConceptIcon
-                        conceptId={c.id}
-                        size={12}
-                        color={active ? cat.color : 'var(--td)'}
-                      />
-                    </div>
+                    {total}
+                  </span>
+                </button>
 
-                    {/* Text */}
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="text-xs font-medium truncate"
-                        style={{ color: active ? cat.color : 'var(--t)' }}
+                {/* Category sub-items */}
+                {isExpanded && (
+                  <div className="mb-1">
+                    {group.cats.map(catId => {
+                      const cat = catMap[catId];
+                      if (!cat) return null;
+                      const count = catCount(catId);
+                      const isActive = activeCat === catId;
+                      return (
+                        <button
+                          key={catId}
+                          onClick={() => setActiveCat(isActive ? 'all' : catId)}
+                          className="w-full flex items-center gap-2 px-4 py-1.5 rounded-lg text-left transition-colors"
+                          style={{
+                            background: isActive ? `${cat.color}15` : 'transparent',
+                            border: isActive ? `1px solid ${cat.color}30` : '1px solid transparent',
+                          }}
+                          onMouseEnter={e => {
+                            if (!isActive) e.currentTarget.style.background = 'var(--s3)';
+                          }}
+                          onMouseLeave={e => {
+                            if (!isActive) e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          {/* Colored dot */}
+                          <span
+                            className="flex-shrink-0 rounded-full"
+                            style={{ width: 7, height: 7, background: cat.color, opacity: isActive ? 1 : 0.65 }}
+                          />
+                          <span
+                            className="flex-1 text-xs truncate"
+                            style={{ color: isActive ? cat.color : 'var(--tm)' }}
+                          >
+                            {cat.label}
+                          </span>
+                          <span
+                            className="text-xs flex-shrink-0"
+                            style={{ color: 'var(--td)', fontSize: 10 }}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Concept list */}
+        <div className="px-2 pb-2" style={{ borderTop: '1px solid var(--b0)' }}>
+          <div className="pt-2">
+            {CATEGORIES.filter(cat => activeCat === 'all' || cat.id === activeCat).map(cat => {
+              const items = filtered.filter(c => c.cat === cat.id);
+              if (items.length === 0) return null;
+              return (
+                <div key={cat.id} className="mb-3">
+                  <div
+                    className="section-label px-2 py-1.5 mb-0.5"
+                    style={{ color: cat.color }}
+                  >
+                    {cat.label}
+                  </div>
+                  {items.map(c => {
+                    const viewed = isViewed(c.id);
+                    const active = currentConcept === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => navigate(`/lab?concept=${c.id}`)}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors mb-0.5"
+                        style={{
+                          background: active ? `${cat.color}10` : 'transparent',
+                          border: active ? `1px solid ${cat.color}30` : '1px solid transparent',
+                        }}
+                        onMouseEnter={e => {
+                          if (!active) e.currentTarget.style.background = 'var(--s3)';
+                        }}
+                        onMouseLeave={e => {
+                          if (!active) e.currentTarget.style.background = 'transparent';
+                        }}
                       >
-                        {c.title}
-                      </div>
-                      <div className="text-xs truncate" style={{ color: 'var(--td)', fontSize: 10 }}>
-                        {c.tag}
-                      </div>
-                    </div>
+                        {/* Icon wrapper */}
+                        <div
+                          className="flex items-center justify-center rounded-md flex-shrink-0"
+                          style={{
+                            width: 22,
+                            height: 22,
+                            background: active ? `${cat.color}18` : 'var(--s3)',
+                            border: active ? `1px solid ${cat.color}30` : '1px solid transparent',
+                          }}
+                        >
+                          <ConceptIcon
+                            conceptId={c.id}
+                            size={12}
+                            color={active ? cat.color : 'var(--td)'}
+                          />
+                        </div>
 
-                    {/* Viewed dot */}
-                    {viewed && !active && (
-                      <span
-                        className="flex-shrink-0 rounded-full"
-                        style={{ width: 5, height: 5, background: cat.color, opacity: 0.6 }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="text-xs font-medium truncate"
+                            style={{ color: active ? cat.color : 'var(--t)' }}
+                          >
+                            {c.title}
+                          </div>
+                          <div className="text-xs truncate" style={{ color: 'var(--td)', fontSize: 10 }}>
+                            {c.tag}
+                          </div>
+                        </div>
+
+                        {/* Viewed dot */}
+                        {viewed && !active && (
+                          <span
+                            className="flex-shrink-0 rounded-full"
+                            style={{ width: 5, height: 5, background: cat.color, opacity: 0.6 }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Footer nav */}
