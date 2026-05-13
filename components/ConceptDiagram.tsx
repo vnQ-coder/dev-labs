@@ -77,6 +77,29 @@ const COMPONENT_DIAGRAMS: Record<string, React.LazyExoticComponent<() => React.R
   'ds-graph':                lazy(() => import('./diagrams/DSGraphDiagram')),
   'ds-trie':                 lazy(() => import('./diagrams/DSTrieDiagram')),
   'ds-union-find':           lazy(() => import('./diagrams/DSUnionFindDiagram')),
+  // MongoDB
+  'mongodb-documents':       lazy(() => import('./diagrams/MongoDocumentsDiagram')),
+  'mongodb-indexes':         lazy(() => import('./diagrams/MongoIndexesDiagram')),
+  'mongodb-aggregation':     lazy(() => import('./diagrams/MongoAggregationDiagram')),
+  'mongodb-replication':     lazy(() => import('./diagrams/MongoReplicationDiagram')),
+  'mongodb-sharding':        lazy(() => import('./diagrams/MongoShardingDiagram')),
+  'mongodb-transactions':    lazy(() => import('./diagrams/MongoTransactionsDiagram')),
+  // Git
+  'git-basics':              lazy(() => import('./diagrams/GitBasicsDiagram')),
+  'git-branching':           lazy(() => import('./diagrams/GitBranchingDiagram')),
+  'git-advanced':            lazy(() => import('./diagrams/GitAdvancedDiagram')),
+  'git-remote':              lazy(() => import('./diagrams/GitRemoteDiagram')),
+  'git-internals':           lazy(() => import('./diagrams/GitInternalsDiagram')),
+  // GitHub Actions
+  'gha-fundamentals':        lazy(() => import('./diagrams/GHAFundamentalsDiagram')),
+  'gha-docker-ecr':          lazy(() => import('./diagrams/GHADockerECRDiagram')),
+  'gha-deploy-ec2':          lazy(() => import('./diagrams/GHADeployEC2Diagram')),
+  'gha-deploy-ecs':          lazy(() => import('./diagrams/GHADeployECSDiagram')),
+  'gha-deploy-eks':          lazy(() => import('./diagrams/GHADeployEKSDiagram')),
+  // PostgreSQL Advanced
+  'postgres-clustered-indexes': lazy(() => import('./diagrams/PostgresClusteredIndexesDiagram')),
+  'postgres-window-functions':  lazy(() => import('./diagrams/PostgresWindowFunctionsDiagram')),
+  'postgres-ctes-recursive':    lazy(() => import('./diagrams/PostgresCTEsDiagram')),
 };
 
 /* ── Invisible handle style (layout anchors only) ─────────────── */

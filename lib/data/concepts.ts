@@ -17,6 +17,9 @@ import { CONCEPTS_POSTGRES } from './concepts-postgres';
 import { CONCEPTS_AWS_SERVICES } from './concepts-aws-services';
 import { CONCEPTS_DSA } from './concepts-dsa';
 import { CONCEPTS_GIT } from './concepts-git';
+import { CONCEPTS_GHA } from './concepts-gha';
+import { CONCEPTS_MONGODB } from './concepts-mongodb';
+import { CONCEPTS_POSTGRES_ADVANCED } from './concepts-postgres-advanced';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -37,4 +40,7 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_AWS_SERVICES,
   ...CONCEPTS_DSA,
   ...CONCEPTS_GIT,
+  ...CONCEPTS_GHA,
+  ...CONCEPTS_MONGODB,
+  ...CONCEPTS_POSTGRES_ADVANCED,
 ];

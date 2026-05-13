@@ -90,6 +90,29 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   'ds-graph':                lazy(() => import('@/components/diagrams/DSGraphDiagram')),
   'ds-trie':                 lazy(() => import('@/components/diagrams/DSTrieDiagram')),
   'ds-union-find':           lazy(() => import('@/components/diagrams/DSUnionFindDiagram')),
+  // MongoDB
+  'mongodb-documents':       lazy(() => import('@/components/diagrams/MongoDocumentsDiagram')),
+  'mongodb-indexes':         lazy(() => import('@/components/diagrams/MongoIndexesDiagram')),
+  'mongodb-aggregation':     lazy(() => import('@/components/diagrams/MongoAggregationDiagram')),
+  'mongodb-replication':     lazy(() => import('@/components/diagrams/MongoReplicationDiagram')),
+  'mongodb-sharding':        lazy(() => import('@/components/diagrams/MongoShardingDiagram')),
+  'mongodb-transactions':    lazy(() => import('@/components/diagrams/MongoTransactionsDiagram')),
+  // Git
+  'git-basics':              lazy(() => import('@/components/diagrams/GitBasicsDiagram')),
+  'git-branching':           lazy(() => import('@/components/diagrams/GitBranchingDiagram')),
+  'git-advanced':            lazy(() => import('@/components/diagrams/GitAdvancedDiagram')),
+  'git-remote':              lazy(() => import('@/components/diagrams/GitRemoteDiagram')),
+  'git-internals':           lazy(() => import('@/components/diagrams/GitInternalsDiagram')),
+  // GitHub Actions
+  'gha-fundamentals':        lazy(() => import('@/components/diagrams/GHAFundamentalsDiagram')),
+  'gha-docker-ecr':          lazy(() => import('@/components/diagrams/GHADockerECRDiagram')),
+  'gha-deploy-ec2':          lazy(() => import('@/components/diagrams/GHADeployEC2Diagram')),
+  'gha-deploy-ecs':          lazy(() => import('@/components/diagrams/GHADeployECSDiagram')),
+  'gha-deploy-eks':          lazy(() => import('@/components/diagrams/GHADeployEKSDiagram')),
+  // PostgreSQL Advanced
+  'postgres-clustered-indexes': lazy(() => import('@/components/diagrams/PostgresClusteredIndexesDiagram')),
+  'postgres-window-functions':  lazy(() => import('@/components/diagrams/PostgresWindowFunctionsDiagram')),
+  'postgres-ctes-recursive':    lazy(() => import('@/components/diagrams/PostgresCTEsDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {
