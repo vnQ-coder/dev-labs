@@ -101,6 +101,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'Netflix\'s Simian Army (led by Chaos Monkey) randomly terminates EC2 instances in production during business hours. The philosophy: if a failure can happen, it will — so find the weak spots before a real outage does. Every service must be designed to survive its dependencies dying unexpectedly. This culture forced retry logic, circuit breakers, and graceful degradation into every microservice.',
         insight: 'Chaos Monkey is a forcing function. Teams stopped writing brittle code because they knew their instances would be killed at any time.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Netflix chooses AP (Availability + Partition Tolerance) over strong Consistency. Video playback availability is the top priority — a user who cannot start a stream is lost revenue. Stale recommendation data (showing a slightly outdated "Top 10") is acceptable; an unavailable play button is not. During a network partition, Netflix services continue operating with cached or stale data rather than refusing requests. Cassandra (AP database) is the deliberate choice for viewing history: it will accept writes and serve reads even when nodes are unreachable, trading strong consistency for availability.',
+        insight: 'The CAP choice is a product decision, not just an engineering one. Netflix decided that showing a stale resume position is far better than showing an error screen.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Netflix uses a polyglot persistence strategy. Cassandra stores viewing history and resume positions — its wide-column model partitioned by userId gives O(1) reads with no cross-node joins, and its multi-region replication handles global traffic. MySQL (via Vitess for horizontal sharding) stores user account data, subscription plans, and billing — relational integrity matters here. DynamoDB stores device session tokens and feature flags — its key-value model and single-digit millisecond latency make it ideal for per-request auth lookups. Each database is chosen for its access pattern, not as a blanket policy.',
+        insight: 'Netflix open-sourced Hollow, their in-memory dataset technology that caches the entire movie catalog (metadata only) in the heap of every microservice — eliminating database reads for catalog lookups entirely.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Kafka is the central nervous system for Netflix event streaming. Every play, pause, seek, rate, and search event from 80M daily users is published to Kafka topics. Multiple independent consumer groups process the same events: the recommendation pipeline (Flink jobs updating collaborative filtering models), the encoding priority queue (popular titles get re-encoded in AV1 first), the A/B test analytics pipeline, and the fraud detection system. AWS MSK (managed Kafka) handles encoding job orchestration — when a new title is uploaded, MSK queues transcoding tasks across hundreds of AWS worker instances. Kafka\'s durable log means any consumer can replay events if it falls behind.',
+        insight: 'Kafka decouples event producers (the player) from consumers (recommendations, analytics, encoding). Adding a new analytics feature means adding a new consumer group — zero changes to the player or existing pipelines.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Netflix\'s Open Connect CDN is embedded directly inside ISPs worldwide via Open Connect Appliances (OCAs) — physical servers placed inside the ISP\'s network for free in exchange for local traffic serving. 95% of video traffic never traverses the public internet backbone. Netflix uses QUIC (HTTP/3) for video delivery where supported — QUIC eliminates TCP head-of-line blocking and reconnects faster on mobile network switches. Anycast DNS routes users to the nearest OCA cluster. The Playback Service uses a proprietary steering algorithm that considers OCA health, network congestion, and user location to select the optimal OCA — not just the geographically nearest one.',
+        insight: 'Open Connect is a decade-long competitive moat. No streaming competitor has an equivalent ISP-embedded CDN. Replicating it would require thousands of hardware deployments and ISP negotiations.',
+      },
     ],
 
     decisions: [
@@ -121,6 +145,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         chosen: 'Precompute offline, serve from cache',
         reason:
           'Collaborative filtering over 238M user histories cannot be run in real-time per request. Netflix trains models offline (Spark), stores ranked recommendation lists per user in Cassandra, and serves them at <1ms from cache. Real-time signals (you just watched X) trigger lightweight re-ranking, not full model inference.',
+      },
+      {
+        question: 'AP vs CP for the viewing history and recommendation system?',
+        chosen: 'AP — availability over consistency',
+        reason:
+          'A user who cannot load their "Continue Watching" row because a Cassandra node is unavailable has a broken experience. A user who sees a row that is 30 seconds stale barely notices. Netflix explicitly chose Cassandra (an AP database) over MySQL for viewing history because Cassandra stays available during node failures — it accepts writes and serves reads from the remaining replicas. Consistency is sacrificed: a resume position might be off by one playback event. That trade-off is deliberate.',
+      },
+      {
+        question: 'Kafka vs SQS for the play-event pipeline?',
+        chosen: 'Kafka (Apache Kafka / AWS MSK)',
+        reason:
+          'SQS is a queue — once a message is consumed and deleted, it is gone. Kafka is a durable, replayable log. Netflix needs multiple independent consumer groups (recommendations, analytics, A/B testing, fraud detection) to each process every play event independently at their own pace. With SQS, only one consumer can process each message. Kafka\'s consumer group model lets all pipelines process the same events without coupling. Replay is also critical: if the recommendation pipeline has a bug and needs to reprocess 7 days of events, Kafka makes that possible.',
       },
     ],
 
@@ -144,6 +180,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'What would you do if the CDN goes down?',
         a: 'Graceful degradation in layers: (1) Route around saturated OCAs to healthy ones within the same ISP using DNS health checks. (2) Fall back to Akamai or CloudFront as backup CDN — Netflix maintains hot failover agreements. (3) Drop quality tiers to reduce bandwidth pressure. (4) Circuit breakers in the Playback Service stop routing to unhealthy OCAs. During the 2012 Christmas Eve AWS outage, these fallbacks kept streaming alive for most users.',
+      },
+      {
+        q: 'Which CAP theorem properties does Netflix prioritize and why?',
+        a: 'Netflix chooses AP — Availability and Partition Tolerance — over Consistency. The reasoning is product-driven: an unavailable play button loses a customer; a slightly stale "Continue Watching" row is invisible to users. Their entire database stack reflects this: Cassandra for viewing history (AP by design — leaderless replication accepts writes even when nodes are down), Zuul with fallback cached responses for API failures, and Hystrix circuit breakers that return stale cached data rather than propagating errors. The only exception is billing, where they use strongly consistent Aurora/MySQL to prevent incorrect charges.',
+      },
+      {
+        q: 'How does Netflix use Kafka across its architecture?',
+        a: 'Kafka is the event backbone. Every user interaction — play, pause, seek, search, rating — is published as an event. Multiple consumer groups independently process these: (1) The recommendation pipeline uses Flink to update collaborative filtering models in near-real-time. (2) The analytics warehouse ingests events for A/B test dashboards. (3) The encoding priority queue reorders transcoding jobs based on content popularity signals. (4) The fraud detection system flags unusual access patterns. AWS MSK hosts Kafka for reliability. Because Kafka retains events for 7+ days, any consumer can replay history to recover from bugs without requiring re-generation of source events.',
       },
     ],
 
@@ -241,6 +285,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'If a driver accepts then cancels, the rider is already in a matched state. The system must detect the cancellation (driver app sends a cancel event), atomically release the driver, and restart matching from scratch — preferring drivers with low cancellation rates this time. A Redis distributed lock prevents double-booking the same driver to two riders during the reassignment window.',
         insight: 'The hardest part of matching is not finding a driver — it\'s handling every failure mode of a confirmed match.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Uber applies a split CAP strategy depending on the subsystem. The ride matching and driver assignment system is CP (Consistency + Partition Tolerance): it is critical that a driver is assigned to exactly one rider at a time. Double-booking is a severe user-facing failure. Uber uses Redis distributed locks and conditional writes to enforce this — during a partition, matching may become unavailable rather than risk double-assignment. In contrast, surge pricing display is AP: the multiplier shown to a rider may be up to 60 seconds stale. A rider seeing 1.8x when the true surge is 1.9x is acceptable. The consequence of a wrong surge display is minor; the consequence of a double-booked driver is catastrophic.',
+        insight: 'The same company can be CP in one subsystem and AP in another. The CAP choice must be made per-feature based on the cost of inconsistency vs the cost of unavailability.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Uber uses a polyglot stack tuned to each data type. MySQL (via Schemaless — Uber\'s custom MySQL sharding layer) stores completed trip records: structured relational data with strong consistency requirements for financial records and auditability. Redis stores active driver locations — the entire active fleet (1M drivers, 100MB) fits in memory, giving sub-millisecond spatial lookups with a 30-second TTL auto-expiry for offline drivers. Cassandra stores analytics and historical location data — its wide-column model handles append-heavy time-series writes from 250K GPS events per second, and its multi-datacenter replication serves global analytics queries without cross-region latency.',
+        insight: 'Uber built Schemaless on top of MySQL specifically because MySQL sharding tools were immature in 2014. They needed MySQL\'s transactional guarantees for trip records but at a scale MySQL alone could not support.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Kafka is the backbone for Uber\'s location stream processing. The 250,000 GPS updates per second from drivers are published to Kafka topics partitioned by driver_id — ensuring all updates from a given driver go to the same partition and are processed in order. Consumer groups include: the Redis updater (writes latest position to Redis for matching), the ETA service (feeds ML models with real-time traffic data), the heatmap service (aggregates density for the rider app), and the fraud detector (flags unusual driver behavior). Partitioning by driver_id ensures ordered processing per driver without global serialization.',
+        insight: 'Partitioning Kafka by driver_id is a critical design choice. It guarantees that GPS event ordering is preserved per driver — without this, the ETA model could receive out-of-order positions and compute wrong routes.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Uber uses gRPC for mobile-to-server communication — its binary Protocol Buffer encoding is significantly more efficient than REST/JSON for the high-frequency, structured GPS payloads sent every 4 seconds from 1M drivers. gRPC over HTTP/2 multiplexes multiple streams over a single TCP connection, reducing overhead on mobile networks. Anycast routing directs drivers and riders to the nearest Uber data center (typically the city\'s regional DC). For city-level isolation, Uber\'s architecture partitions services by city — a Paris outage does not affect New York. Each city\'s matching service operates independently with its own Redis instance.',
+        insight: 'City-level partitioning is Uber\'s blast radius reducer. By treating each city as an independent service boundary, a database failure in one city cannot cascade globally — unlike a monolithic global matching service.',
+      },
     ],
 
     decisions: [
@@ -262,6 +330,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'HTTP polling at 4-second intervals = 1 full HTTP handshake every 4 seconds per driver. At 1M drivers that\'s 250K HTTP connections/sec opening and closing — TCP overhead is enormous. WebSocket maintains a single persistent connection per driver app. Updates are tiny binary payloads (~50 bytes). Battery impact is also lower — no repeated connection establishment.',
       },
+      {
+        question: 'CP vs AP for the ride matching system?',
+        chosen: 'CP for matching, AP for surge pricing display',
+        reason:
+          'The matching system must never assign the same driver to two riders. This requires strong consistency — Uber uses Redis distributed locks with a short TTL. During a partition, the system will refuse to match rather than risk double-booking. Surge pricing display, however, uses AP: multipliers are computed by a Kafka Streams job every 60 seconds and cached. A rider seeing a 60-second stale surge is an acceptable trade-off for availability. The cost of wrong surge display is a slightly mis-priced ride; the cost of double-booking is driver and rider both showing up at the same pickup expecting different trips.',
+      },
+      {
+        question: 'gRPC vs REST for mobile-to-server location updates?',
+        chosen: 'gRPC with Protocol Buffers',
+        reason:
+          'GPS payloads are sent every 4 seconds from 1M drivers — that is 250K messages per second. Each message contains driver_id, latitude, longitude, heading, speed, and timestamp. In JSON over REST, this is ~150 bytes per message. In Protocol Buffers (gRPC), it compresses to ~30 bytes — a 5x reduction. Multiplied across 250K messages/sec, that is 30MB/sec vs 150MB/sec of inbound bandwidth. gRPC over HTTP/2 also multiplexes requests over a single connection, eliminating per-request TCP overhead. Battery and data savings on the driver\'s device are significant at scale.',
+      },
     ],
 
     interview: [
@@ -280,6 +360,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'How would you implement surge pricing?',
         a: 'A Kafka Streams job runs continuously. It reads two streams: driver-location-events and rider-request-events. For each H3 cell, every 60 seconds it computes: surge = f(rider_requests / available_drivers). It publishes multipliers to a Kafka topic. The Pricing Service subscribes and caches the latest multiplier per cell. When a rider requests, the Pricing Service looks up the cell multiplier (O(1) cache read) and applies it to the base fare before showing the price confirmation.',
+      },
+      {
+        q: 'How does Uber\'s CAP theorem trade-off differ between matching and pricing?',
+        a: 'Uber intentionally applies different CAP choices per subsystem. For matching: CP — a distributed Redis lock ensures one driver maps to one rider. During a network partition, matching pauses rather than risks double-booking. For surge pricing: AP — the Kafka Streams computation runs every 60 seconds and results are cached. The displayed multiplier can be stale by up to 60 seconds. This is acceptable because the cost of stale surge (a few cents off) is far lower than the cost of matching inconsistency (two riders in the same car). The key insight is that CAP is a per-feature decision, not a per-company one.',
+      },
+      {
+        q: 'Why does Uber partition Kafka by driver_id for location events?',
+        a: 'GPS events must be processed in order per driver. If driver A sends locations at t=0, t=4, t=8, those three events must be consumed in sequence by the ETA model — otherwise the model might compute a route using a position from t=8 followed by t=0, showing the driver moving backward. Kafka guarantees ordering only within a single partition. By partitioning on driver_id, all events from one driver go to the same partition, ensuring ordered processing. A random partition key would spread one driver\'s events across multiple partitions with no ordering guarantee.',
       },
     ],
 
@@ -379,6 +467,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'Online status and typing indicators are ephemeral — they do not go through Kafka or get persisted. A separate lightweight Presence Service maintains a session table in Redis. When Alice types, her client sends a "typing" event to the Presence Service, which pushes it to Bob\'s Chat Server via an internal pub/sub channel. Presence state has a 30-second TTL — if the client disconnects, status expires automatically.',
         insight: 'Presence is intentionally not durable. Losing a typing indicator is fine. Losing a message is not. Different systems, different guarantees.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'WhatsApp chooses CP (Consistency + Partition Tolerance) for message ordering. The Signal Protocol\'s Double Ratchet algorithm requires messages to be processed in strict sequence — each message\'s encryption key is derived from the previous one. Out-of-order delivery breaks the ratchet and makes messages undecryptable. WhatsApp\'s Chat Server serializes all messages in a conversation on a single Erlang process, guaranteeing ordering at the cost of availability: if the Chat Server for a conversation is unreachable, message delivery waits rather than proceeding out-of-order. Delivered messages are also confirmed before the server proceeds, ensuring the sender knows the exact delivery state.',
+        insight: 'E2E encryption with the Signal Protocol is not just a security decision — it is an architectural constraint that forces CP. The cryptographic ordering requirement eliminates eventual consistency as an option.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'WhatsApp uses a deliberately minimal database stack, reflecting its engineering efficiency ethos. Mnesia — Erlang\'s built-in distributed in-memory database — stores active session state and routing tables: which Chat Server is responsible for which user. Its deep integration with the Erlang VM means session lookups require no network hop. ScyllaDB (a Cassandra-compatible, C++ rewrite with much lower latency) stores the persistent message queue for offline users — messages waiting to be delivered to a recipient who is not yet connected. The partition key is recipient phone number. When a user reconnects, all pending messages are fetched in a single range scan. Phone numbers as keys also eliminate the need for a separate user ID translation layer.',
+        insight: 'WhatsApp\'s choice of Mnesia reflects the "batteries included" Erlang philosophy — no separate session store, no Redis, no external coordination. The session database is literally part of the runtime.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'WhatsApp does not use an external message broker like Kafka. The Erlang/OTP runtime itself is the message queue. Each Erlang process has a mailbox — an ordered queue of messages waiting to be processed. When Alice sends a message to Bob, Alice\'s Chat Server process sends an Erlang message (a native VM construct) to Bob\'s Chat Server process. If Bob\'s process is on a different node, Erlang\'s distributed messaging layer handles the cross-node delivery transparently. For offline storage, messages are written to ScyllaDB and held until the recipient reconnects. The XMPP protocol (an XML-based messaging standard, though WhatsApp uses a binary variant called XMPP/BOSH) governs the client-server message format and delivery receipt semantics.',
+        insight: 'Erlang\'s actor model IS the message broker. WhatsApp avoided the operational complexity of running Kafka by leveraging the runtime\'s native message-passing capabilities — one less system to operate for 55 engineers.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'WhatsApp uses a custom binary protocol over persistent TCP connections — a compact binary encoding of XMPP that is far more efficient than XML or JSON. Phone number-based routing is a key architectural choice: every WhatsApp user is identified by their phone number, which maps to a Chat Server via consistent hashing. When Alice messages Bob (+1-555-0100), the routing layer hashes the phone number to find Bob\'s current Chat Server. This eliminates username lookup tables entirely. WhatsApp maintains long-lived TCP connections from clients — the mobile app keeps the connection alive with periodic pings (every 30s on WiFi, less frequently on cellular to preserve battery). Edge servers in each region terminate client TCP connections and proxy to backend Chat Servers, reducing latency for connection setup.',
+        insight: 'Using phone numbers as primary keys eliminates an entire category of system complexity: no username registry, no ID translation layer, no account creation flow for routing purposes. The phone number IS the address.',
+      },
     ],
 
     decisions: [
@@ -400,6 +512,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'Retaining messages server-side creates enormous storage costs at 100B messages/day, creates a legal liability (subpoena target), and is unnecessary given E2E encryption (server has ciphertext, not plaintext). Deleting after delivery reduces storage to only undelivered messages. Users who want history keep it on their device or in iCloud/Google Drive encrypted backups.',
       },
+      {
+        question: 'CP vs AP for message delivery ordering?',
+        chosen: 'CP — strict ordering required by the Signal Protocol',
+        reason:
+          'The Double Ratchet algorithm generates each message\'s decryption key from the previous message\'s key. This means messages must be processed in order. If message 5 arrives before message 4, message 5 cannot be decrypted — the ratchet is in the wrong state. WhatsApp therefore serializes all messages in a conversation on a single server process (an Erlang process). During a partition, delivery waits rather than delivering out of order. This is a CP choice: consistency (ordering) is prioritized over availability (delivery speed during failure).',
+      },
+      {
+        question: 'Mnesia vs Redis for session state?',
+        chosen: 'Mnesia (Erlang built-in database)',
+        reason:
+          'Mnesia is a distributed in-memory database built into the Erlang VM. For WhatsApp, session state (which Chat Server process is handling which user) must be looked up on every message route. Using an external Redis would add a network hop — potentially 1ms — to every message. Mnesia lookups happen within the same VM with microsecond latency. It also participates in Erlang\'s cluster membership, so if a Chat Server node goes down, Mnesia automatically redistributes its data. The downside: Mnesia does not scale to billions of records — but session state is only active sessions (500M DAUs at most), which fits comfortably.',
+      },
     ],
 
     interview: [
@@ -418,6 +542,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'How does end-to-end encryption work for group messages?',
         a: 'WhatsApp uses the Signal Protocol\'s Sender Keys for groups. When Alice joins a group, she generates a Sender Key and distributes it (encrypted) to each member using their individual session keys. When Alice sends a group message, she encrypts it once with her Sender Key. Each member decrypts using the shared Sender Key — O(1) encrypt, O(1) decrypt per member. This is far more efficient than encrypting once per member (which would be O(N) on the sender).',
+      },
+      {
+        q: 'Why does WhatsApp choose CP over AP for message ordering?',
+        a: 'The Signal Protocol\'s Double Ratchet algorithm is the reason. Each message derives its decryption key from the previous message\'s ratchet state. If message 5 is delivered before message 4, the recipient\'s ratchet is in the wrong state — message 5 is undecryptable. This cryptographic requirement forces strict ordering. WhatsApp serializes all messages in a conversation on a single Erlang process, guaranteeing order at the cost of head-of-line blocking: if a message delivery is slow, subsequent messages wait. During a partition, the system prefers to delay delivery rather than deliver out of order. This is CP — correctness over availability.',
+      },
+      {
+        q: 'How does WhatsApp route a message from Alice to Bob using phone numbers?',
+        a: 'The routing is a two-step process: (1) The Chat Server hashes Bob\'s phone number using consistent hashing to determine which Chat Server cluster is responsible for Bob. This mapping lives in Mnesia — every Chat Server has a local copy, so the lookup is a sub-microsecond in-VM operation with no network hop. (2) The message is forwarded to Bob\'s Chat Server. If Bob is online (an active Erlang process for his connection exists), the message is delivered directly. If offline, the message is written to ScyllaDB keyed by Bob\'s phone number and delivered when he reconnects. Phone-number-based routing eliminates a username registry and the associated consistency challenges.',
       },
     ],
 
@@ -515,6 +647,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'A stream processing job (Heron, Twitter\'s Kafka Streams equivalent) counts hashtag mentions in a 10-minute sliding window. It maintains a top-K heap per geographic region. Results are written to Redis every 30 seconds. The Trending Service reads from Redis for the /trends endpoint. Spam filtering removes artificially amplified topics using a bot-detection ML model running in-stream.',
         insight: 'Trending topics are a counting problem at 6,000 tweets/sec. Exact counts are expensive — approximate counts with Count-Min Sketch data structure give 99.9% accuracy at 1% of the memory.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Twitter chooses AP (Availability + Partition Tolerance) for the home timeline. Eventual consistency is explicitly acceptable: the SLA is that a tweet appears in followers\' timelines within 5 seconds, not instantly. During a partition, Redis timeline caches continue serving reads (possibly slightly stale), and fan-out continues to the reachable nodes — out-of-sync nodes catch up when the partition heals. Twitter\'s engineering blog has stated that read availability (you can always load your timeline) is non-negotiable, while consistency (seeing every tweet in perfect order immediately) is a best-effort goal. The product experience of a slightly delayed tweet in a timeline is invisible to users; a 503 "Timeline unavailable" error is deeply user-visible.',
+        insight: 'At Twitter\'s scale, choosing CP for timelines would mean timeline reads fail whenever any Redis shard is unreachable. AP means users always see something, even if it is slightly stale — a far better product experience.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Twitter uses a multi-database strategy. Manhattan — Twitter\'s custom distributed key-value store — is the primary storage for tweets themselves: the row key is tweet_id, and the value is the tweet payload. Manhattan is optimized for Twitter\'s access pattern: point reads by tweet_id (for timeline hydration) and range scans by user_id+timestamp (for profile pages). MySQL stores user account data, follower relationships at small scale, and financial records — relational integrity matters for billing. Redis (cluster) stores the actual timeline caches — 350M users each with up to 800 tweet IDs as a sorted set. The Redis cluster is the hottest path: every timeline read and every fan-out write goes through Redis.',
+        insight: 'Manhattan was built because neither Cassandra nor HBase could serve Twitter\'s mixed access pattern: point reads by tweet_id at 300K QPS AND large range scans of follower lists. Custom databases emerge from access patterns that commercial options cannot satisfy.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Kafka is Twitter\'s event spine for tweet fan-out. When a tweet is created, the Tweet Service publishes a "TweetCreated" event to Kafka. The Fan-out Service consumes this event, reads the author\'s follower list from Manhattan, and writes the tweet_id to each follower\'s Redis sorted set timeline cache. The Kafka topic is partitioned by user_id so that all tweets from one author go to the same partition, preserving order. Separate consumers handle: Earlybird search indexing (making tweets searchable within seconds), the analytics data warehouse, the notification service (push alerts for @mentions), and the ad relevance pipeline. Heron (Twitter\'s internal Kafka Streams replacement, open-sourced) processes trending topic counts as a stateful stream job.',
+        insight: 'Without Kafka, the tweet fan-out pipeline would be a tightly coupled synchronous call chain. Kafka decouples tweet creation (fast) from fan-out (slower for celebrities) — the user sees their tweet posted immediately while fan-out happens asynchronously.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Twitter uses a multi-CDN strategy for media (images and videos attached to tweets) — Akamai and Fastly serve static assets globally, with automatic failover between CDN providers. The Twitter API uses REST for standard read/write operations and WebSocket (via the Streaming API) for real-time tweet delivery to clients that need live feeds. Timeline reads are served from the user\'s geographically nearest data center — Twitter runs active-active across multiple regions. DNS-based load balancing with latency routing directs each request to the lowest-latency data center. For the firehose (full 6,000 tweets/sec stream sold to data partners), a dedicated streaming infrastructure built on Kafka serves the data in real time.',
+        insight: 'Twitter\'s decision to offer a public Streaming API (the firehose) transformed it from a social network into a data platform — generating significant revenue from data licensing.',
+      },
     ],
 
     decisions: [
@@ -536,6 +692,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'The social graph has unique access patterns: reads are large sequential scans (give me all 10M followers of @elonmusk), writes are high-frequency (people follow/unfollow constantly). MySQL\'s B-tree indexes are not efficient for large sequential scans. Manhattan is optimized for this: range scans over follower lists are its primary use case. Twitter\'s team built it when MySQL couldn\'t keep up with follow/unfollow write volume.',
       },
+      {
+        question: 'AP vs CP for timeline reads?',
+        chosen: 'AP — timeline availability over perfect consistency',
+        reason:
+          'Twitter\'s home timeline uses Redis sorted sets served from the nearest data center. During a Redis node failure or network partition, the system fails over to replica nodes that may be slightly behind — delivering a timeline that is a few seconds stale rather than returning an error. This is AP. The alternative — refusing to serve the timeline until all nodes confirm consistency — would cause visible outages for millions of users during any infrastructure hiccup. Twitter\'s product team explicitly chose "always show something" over "always show perfectly consistent data." The 5-second fan-out SLA already implies eventual consistency is acceptable.',
+      },
+      {
+        question: 'Kafka vs direct Redis writes for the fan-out pipeline?',
+        chosen: 'Kafka as an intermediary before Redis fan-out',
+        reason:
+          'Writing directly to Redis from the Tweet Service during tweet creation would tightly couple the write path to the fan-out path. If Redis is slow or a follower list read is delayed (e.g., fetching 10M followers from Manhattan), the tweet POST request would be slow. By publishing to Kafka first, the tweet is confirmed written immediately and the fan-out happens asynchronously. The user sees their tweet posted in < 100ms while fan-out to 10M followers completes within 5 seconds in the background. Kafka also provides durability: if the Fan-out Service crashes, it replays from Kafka rather than losing fan-out jobs.',
+      },
     ],
 
     interview: [
@@ -554,6 +722,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'What happens if the Redis timeline cache for a user gets evicted?',
         a: 'Cache miss triggers a timeline rebuild. The Timeline Service reads the user\'s follow list (from Manhattan/Social Graph), fetches recent tweet IDs for each followed account (from the Tweet Store), merges and sorts by timestamp, and re-populates Redis. This is called a "cache warming" or "timeline hydration" path. It\'s expensive (O(follows × recent tweets per account)) but rare — Redis eviction only happens for inactive users. Active users\' caches are always warm.',
+      },
+      {
+        q: 'How does Twitter\'s CAP theorem choice manifest in the user experience?',
+        a: 'Twitter chooses AP for timelines. Practically: (1) When you post a tweet, it appears in your own profile immediately (strong consistency for the author\'s own view). (2) Your tweet propagates to followers\' timelines within ~5 seconds — eventual consistency. (3) During a Redis node failure, your timeline continues serving from a slightly stale replica rather than returning an error. (4) Like and retweet counts are eventually consistent — you might see a tweet with 500 likes refresh to 510 seconds later. Twitter\'s eng blog confirms: "We prefer stale data over no data." The only place Twitter uses CP is financial operations (ad billing) where double-charging would be a legal problem.',
+      },
+      {
+        q: 'How does Kafka enable Twitter\'s real-time search indexing?',
+        a: 'Every tweet published to Kafka is consumed by the Earlybird indexing pipeline — a separate consumer group from the fan-out service. Earlybird workers read tweet events from Kafka, tokenize the tweet text and hashtags, and upsert into the in-memory inverted index sharded by tweet_id range. Because Kafka retains events for 7 days, if an Earlybird shard restarts, it replays the Kafka log to rebuild its index from the last checkpoint — no data loss. The result: tweets are searchable within ~10 seconds of posting. Without Kafka as the durable intermediary, a failed indexing worker would permanently miss tweets.',
       },
     ],
 
@@ -651,6 +827,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'Amazon\'s product search (A9) doesn\'t rank by relevance alone. It multiplies relevance × purchase probability × seller margin. Purchase probability is a ML model trained on billions of click-to-purchase events. A product that\'s often clicked but rarely bought ranks lower than one with high conversion. This alignment of search ranking with revenue generation is why Amazon search feels commercial — it is, by design.',
         insight: 'Ranking = relevance × purchase probability × margin. A search engine that maximizes clicks optimizes for curiosity. Amazon optimizes for transactions.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Amazon applies a deliberate split-CAP strategy. The checkout and inventory reservation path is CP: when a customer places an order, the inventory decrement must be strongly consistent — two customers cannot buy the same last unit. DynamoDB conditional writes with optimistic locking enforce this. The product catalog and search path is AP: the "3 left in stock" display on the product page uses eventually consistent reads — it may show 3 when 2 remain. During a network partition, Amazon\'s philosophy (articulated in Werner Vogels\'s 2007 "Eventually Consistent" paper) is that the catalog must always be available and searchable, even if counts are momentarily stale. The cart itself is AP: DynamoDB Global Tables replicate carts across regions with eventual consistency, ensuring the cart is always accessible even during a regional outage.',
+        insight: 'Amazon\'s Dynamo paper (2007) was the foundational document for AP databases. DynamoDB was born from the insight that the shopping cart — Amazon\'s most critical data — must never be unavailable, even at the cost of momentary inconsistency.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Amazon uses different databases for each distinct workload. DynamoDB stores the shopping cart — the access pattern is simple (read/write by userId) and availability is non-negotiable. DynamoDB\'s Global Tables replicate carts across 3+ regions with single-digit millisecond reads. Amazon Aurora (MySQL-compatible, built on distributed storage) stores confirmed orders — relational integrity, ACID transactions, and auditability are required for financial records. Elasticsearch (AWS OpenSearch) powers product search — full-text search, faceted filtering by category/brand/price, and relevance ranking are capabilities that no key-value or relational database provides at this scale. The search index is an eventually consistent projection of the product catalog, updated via a Kinesis stream when catalog data changes.',
+        insight: 'Amazon literally invented DynamoDB because MySQL could not handle shopping cart availability at their scale. The constraints of their own products drove the creation of AWS services — DynamoDB, SQS, and S3 all originated as internal solutions.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Amazon\'s order pipeline is built on SQS and SNS as the primary message infrastructure. When an order is placed, an "OrderPlaced" event is published to an SNS topic — a fan-out point. SQS queues subscribe to this topic: the Inventory SQS queue (for stock reservation), the Fulfillment SQS queue (for warehouse routing), the Email SQS queue (for confirmation emails), and the Fraud SQS queue (for risk scoring). Each queue is processed independently with its own retry and dead-letter queue configuration. Kinesis Data Streams handles the high-volume clickstream (billions of page views and product interactions per day), feeding into the recommendation engine and A/B test analytics. The separation of order events (SQS/SNS — low volume, high reliability) from analytics events (Kinesis — high volume, lower criticality) is intentional: different durability and throughput requirements.',
+        insight: 'SQS and SNS are the fan-out backbone of Amazon\'s order pipeline. Using SNS as the topic and SQS as the queue for each downstream system achieves the pub/sub pattern without tightly coupling any two services — each service can fail and retry independently.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Amazon CloudFront CDN serves product images, static assets, and API accelerates dynamic API calls from 450+ edge locations worldwide. Route 53 uses latency-based routing — a request from a user in Tokyo is routed to the ap-northeast-1 region, not us-east-1. Amazon runs active-active across multiple AWS regions for its core shopping experience: any region can serve any user, with DynamoDB Global Tables keeping cart data consistent across regions. For the checkout flow specifically, Route 53 health checks enable failover: if the primary checkout endpoint in us-east-1 becomes unhealthy, traffic automatically shifts to us-west-2 within 60 seconds. The product detail page is cached at CloudFront for 5 minutes — catalog updates propagate to all edges within this window.',
+        insight: 'Amazon\'s multi-region active-active architecture is why it can claim 99.9999% cart availability. No single data center failure can take down the cart — Global Tables ensures every region has a copy.',
+      },
     ],
 
     decisions: [
@@ -672,6 +872,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'The reservation write (decrement stock) uses DynamoDB conditional writes for strong consistency — no overselling. But the product page showing "3 left in stock!" uses an eventually consistent read — it might show 3 when there are actually 2. This small inaccuracy on display is acceptable. What\'s not acceptable: selling the same item to two customers simultaneously. The write path is strongly consistent; the read path trades consistency for availability and lower latency.',
       },
+      {
+        question: 'SQS vs Kafka for the order processing pipeline?',
+        chosen: 'SQS + SNS for order events, Kinesis for clickstream',
+        reason:
+          'The order pipeline requires at-least-once delivery with dead-letter queues, visibility timeouts, and per-message retry — SQS provides all of this natively. Kafka requires managing brokers, consumer groups, and offset management. For Amazon\'s order volume (~12 orders/sec average), SQS is operationally simpler and sufficient. Kinesis is used for the clickstream (billions of events/day) because Kafka-like ordered streaming semantics and replay are needed for the recommendation engine. The split reflects the different reliability profiles: SQS for reliable job queuing, Kinesis for high-throughput analytics streaming.',
+      },
+      {
+        question: 'CloudFront vs custom CDN for product pages and images?',
+        chosen: 'CloudFront CDN with Route 53 latency routing',
+        reason:
+          'Amazon does not need a custom CDN because their workload — product images, static assets, cached API responses — is a standard CDN use case with no special protocol requirements. CloudFront\'s 450+ edge locations cover all of Amazon\'s markets. Unlike Netflix (which needed ISP-embedded servers for 45 Tbps video traffic), Amazon\'s CDN traffic is images and HTML — far lower bandwidth per request, highly cacheable, and well-served by commodity CDN infrastructure. The operational cost of building and maintaining a custom CDN network is not justified by the marginal performance gain for product images.',
+      },
     ],
 
     interview: [
@@ -690,6 +902,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'How would you design the order processing pipeline?',
         a: 'Event-driven saga: when an order is placed, publish an "OrderPlaced" event to SQS. Inventory Service consumes it → reserves stock → publishes "InventoryReserved". Payment Service consumes that → charges card → publishes "PaymentCharged". Fulfillment Service routes to warehouse → publishes "OrderRouted". Email Service sends confirmation. Each step is independent. Failures trigger compensating events: PaymentFailed → InventoryService releases the reservation. AWS Step Functions orchestrates state and retries.',
+      },
+      {
+        q: 'How does Amazon\'s split-CAP strategy work in practice?',
+        a: 'Amazon applies CP for checkout/inventory (strong consistency required — no overselling, no double-charges) and AP for the product catalog and search (always available, possibly stale). Concretely: (1) Adding to cart — AP, DynamoDB Global Tables with eventual consistency across regions. Cart always loads even during a regional partition. (2) Inventory reservation at checkout — CP, DynamoDB conditional writes with strongly-consistent reads. Two buyers compete, one wins, one gets "out of stock." (3) Product page "X left in stock" display — AP, eventually consistent read, may show stale count. (4) Order record creation — CP, Aurora with ACID transactions. Werner Vogels codified this as "choose your consistency level per operation" — there is no global CAP position for the whole system.',
+      },
+      {
+        q: 'How does Amazon use SQS and SNS together for the order pipeline?',
+        a: 'SNS is the fan-out router; SQS is the reliable delivery queue. When an order is placed, the Order Service publishes to an SNS topic "order-placed". SNS automatically delivers copies to multiple SQS queues that have subscribed: inventory-reservation-queue, fulfillment-routing-queue, email-notification-queue, fraud-detection-queue. Each SQS queue processes its messages independently with its own retry policy and dead-letter queue. If the Fulfillment Service is down, its SQS queue accumulates messages with the order backlog and processes them when the service recovers — no orders are lost. The SNS+SQS fan-out pattern achieves pub/sub semantics with the reliability of persistent queuing.',
       },
     ],
 
@@ -787,6 +1007,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'Enterprise customers often send the same large system prompt (a 10K-token document or codebase) with every API call. Without caching, those 10K tokens are re-processed every time. Prompt caching stores the KV cache for common prompt prefixes. If two requests share the first 10K tokens, only the suffix is processed. This cuts input token cost by 90% for enterprise use cases (e.g., RAG over a fixed document corpus).',
         insight: 'Prompt caching turns a repeated O(n) compute cost into O(1). For a company making 1M API calls with the same 10K-token system prompt, it\'s a 10B token/day reduction in compute.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'ChatGPT applies a two-tier CAP strategy. Conversation history is AP: if a user starts a new session and their previous conversation history is temporarily unavailable (e.g., a PostgreSQL replica is lagging), the system creates a new empty context rather than refusing the request. Losing access to yesterday\'s chat history is a minor inconvenience; a 503 "ChatGPT is unavailable" is a major failure. Billing and quota enforcement is CP: OpenAI cannot risk a user bypassing their token quota due to a consistency failure — that directly impacts revenue. Rate limiting via Redis uses strongly-consistent atomic increments (INCR command) to enforce quotas. If the rate-limit Redis is unreachable, the request is rejected rather than allowed through without quota checking.',
+        insight: 'The asymmetry of consequences drives the CAP choice: a missed conversation history costs nothing; an unenforced billing limit costs real money. One system must be AP, the other must be CP.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'OpenAI uses PostgreSQL as the primary store for conversation history — each conversation is a row with a user_id foreign key, and each message is a row in a messages table. PostgreSQL\'s JSONB column stores the full message content and metadata. The relational model enables queries like "all conversations for user X" and "all messages in conversation Y" efficiently via B-tree indexes. S3 (or Azure Blob Storage) stores model artifacts — the billions of parameters that constitute GPT models. These are multi-gigabyte binary blobs accessed rarely (only during model loading or redeployment) with no query requirements. Redis handles rate limiting — atomic INCR operations on API key counters with TTLs enforce per-minute and per-day token quotas with sub-millisecond latency on every API request.',
+        insight: 'PostgreSQL for conversations is a deliberate choice over NoSQL: conversations have a natural relational structure (user → conversations → messages) and require joins for history retrieval. A key-value store would require denormalization that complicates history queries.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'OpenAI\'s internal GPU job scheduling uses a proprietary queue system — the specifics are not public, but the pattern is a priority queue of inference jobs dispatched to available GPU workers. When an API request arrives, it is enqueued and a GPU worker dequeues it, runs inference, and streams tokens back via SSE. Dynamic batching combines multiple queued requests into a single GPU forward pass. For fine-tuning jobs and batch inference (OpenAI Batch API), a durable job queue handles long-running tasks asynchronously — users submit a batch job, receive a job ID, and poll for completion. The Batch API uses a separate queue from real-time inference to prevent fine-tuning jobs from starving interactive requests.',
+        insight: 'The separation of real-time inference (interactive, latency-sensitive) from batch inference (asynchronous, throughput-optimized) is critical to GPU utilization. Mixing them in a single queue would cause batch jobs to increase p99 latency for interactive users.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'ChatGPT is served via Azure CDN and Azure\'s global network (OpenAI\'s primary cloud partner is Microsoft Azure). HTTP Server-Sent Events (SSE) is the streaming protocol — a single long-lived HTTP GET connection over which the server pushes "data: {token}" events as tokens are generated. SSE was chosen over WebSockets because it is simpler (unidirectional, uses standard HTTP), works through HTTP/2 multiplexing, and is broadly supported by all clients. Anycast routing directs users to the nearest Azure region. For API customers, the OpenAI API endpoints are served from multiple Azure regions (US, EU, Asia) with routing based on API key geography to minimize cross-region latency. Azure\'s global backbone carries the traffic between edge and GPU clusters.',
+        insight: 'SSE over HTTP/2 is the right streaming primitive for LLMs: the response is strictly server-to-client (you cannot "un-ask" a question mid-stream), so WebSocket bidirectionality is unnecessary overhead.',
+      },
     ],
 
     decisions: [
@@ -808,6 +1052,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'Storing history server-side enables cross-device access, history search, and fine-tuning data collection. PostgreSQL stores conversation metadata and message records. But the context window (what gets sent to the model) is managed by the API: if the conversation exceeds the context window, the oldest messages are truncated or summarized. The client cannot be trusted to manage this correctly, and server-side management ensures consistent model behavior.',
       },
+      {
+        question: 'AP vs CP for conversation history availability?',
+        chosen: 'AP for history, CP for billing and quota',
+        reason:
+          'Conversation history reads use eventually consistent PostgreSQL replicas — a user might briefly not see their most recent conversation on a fresh login if the replica is lagging. This is acceptable. The alternative — requiring a strongly-consistent primary read on every history load — would increase read latency and reduce availability. Quota enforcement is the opposite: Redis INCR is atomic and strongly consistent. If a user has used 990 of their 1,000 token quota and sends two requests simultaneously, both cannot be allowed through. Redis handles this correctly with atomic operations; an eventually consistent counter would risk overcharging.',
+      },
+      {
+        question: 'PostgreSQL vs NoSQL for conversation storage?',
+        chosen: 'PostgreSQL with JSONB for message content',
+        reason:
+          'Conversation storage has a natural relational structure: one user has many conversations, each conversation has many messages in order. This maps perfectly to relational tables with foreign keys. Querying "all conversations for user X ordered by last updated" is a simple indexed SQL query. A NoSQL document store (e.g., MongoDB) could work but adds complexity: conversation documents would grow unboundedly as messages accumulate, making the "show last 20 conversations" query require full document loads. PostgreSQL\'s JSONB column stores flexible message metadata (tool calls, file attachments, model parameters) while keeping the relational structure for efficient queries.',
+      },
     ],
 
     interview: [
@@ -826,6 +1082,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'How do you prevent a user\'s 128K-token context from bankrupting you?',
         a: 'Three mechanisms: (1) Token-based pricing — users pay per token, so long contexts cost more. (2) Rate limiting — per-API-key limits on tokens per minute (not just requests per minute). (3) KV cache memory limits — the system enforces a max context length per request and returns an error if exceeded. On the infrastructure side, PagedAttention (vLLM) allows KV cache to be paged in/out of GPU memory like virtual memory, preventing one long-context user from monopolizing GPU RAM.',
+      },
+      {
+        q: 'How does ChatGPT\'s CAP theorem split between conversation history and billing?',
+        a: 'Two different systems, two different CAP choices: (1) Conversation history — AP. Reads use PostgreSQL replicas with potential replication lag. If history is momentarily unavailable, the user gets an empty context or a "history loading" state. The product degrades gracefully. (2) Rate limiting / billing — CP. Redis INCR operations are atomic. Two simultaneous requests from the same API key both hit Redis synchronously — the counter is accurate. If Redis is unavailable, the safe failure mode is to reject requests (fail closed) rather than allow unconstrained usage. OpenAI\'s API docs state that quota limits are enforced strictly — this requires CP semantics.',
+      },
+      {
+        q: 'How does SSE token streaming work technically and why is it chosen over WebSockets?',
+        a: 'SSE is a long-lived HTTP GET response where the server writes "data: {json}\\n\\n" chunks as tokens are generated. The client reads the response body as a stream. Technically: (1) Client sends POST /v1/chat/completions with stream=true. (2) Server responds with Content-Type: text/event-stream and keeps the connection open. (3) As each token is generated, the server writes "data: {delta: token}\\n\\n". (4) When generation completes, the server writes "data: [DONE]\\n\\n" and closes. SSE is chosen over WebSocket because: it is unidirectional (server to client only — the user cannot send more input during generation), works through HTTP/2 proxies and CDNs transparently, and has simpler client-side parsing. WebSocket would add bidirectional overhead for a one-way stream.',
       },
     ],
 
@@ -923,6 +1187,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'Google Docs stores the complete operation log — every insert and delete since the document was created. Version history is not stored as a series of snapshots (expensive storage). Instead, to restore to version N, the system replays operations 1 through N. For performance, the system also stores periodic snapshots (every 1,000 operations), so a restore to version N with snapshot at N-500 only replays 500 operations. This gives O(1) amortized storage and O(log N) restore time.',
         insight: 'The operation log is an append-only event source. Every version of a document ever is implicit in the log. Snapshots are a performance optimization, not the source of truth.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Google Docs chooses CP (Consistency + Partition Tolerance) for document state. Operational Transformation requires a single authoritative server that serializes all operations — there is no "merge two inconsistent document states" as a valid recovery path. If the OT server for a document becomes unreachable during a partition, collaborators see a "reconnecting..." state rather than continuing to edit independently (which would create divergent states that OT cannot reconcile after reconnect). The document must converge to one canonical state; this requires strong consistency at the serialization point. Durability also reflects CP: every operation is written to Bigtable before being broadcast to other collaborators — the server waits for write acknowledgment before confirming the operation.',
+        insight: 'OT\'s requirement for a single serialization point IS the CP choice. The moment you allow two servers to independently accept operations for the same document without coordination, you have abandoned OT and must switch to CRDTs.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Google Docs uses Google-internal infrastructure. Cloud Spanner (or its internal predecessor F1) stores document metadata: title, owner, sharing permissions, last-modified timestamp, and the current snapshot version number. Spanner provides globally consistent relational queries — when you search "my documents" or check "who has edit access", these require consistent reads across millions of documents. Colossus (Google\'s distributed file system, successor to GFS) stores the actual document content and operation logs — large binary blobs that grow with every edit, requiring append-efficient storage at petabyte scale. Bigtable stores the operation log with documentId as the row key and sequence_number as the column qualifier — append operations are native to Bigtable\'s wide-column model.',
+        insight: 'The metadata/content split is fundamental: metadata (title, permissions) is small, frequently queried, needs relational semantics — Spanner is ideal. Content (operation logs, snapshots) is large, append-only, queried by documentId range — Bigtable/Colossus is ideal.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Google Docs uses Google Cloud Pub/Sub for document change propagation between services. When an operation is applied by the OT server, it publishes a "DocumentChanged" event to Pub/Sub. Subscribers include: the Presence Service (to update collaborator awareness), the Notification Service (to send email digests for "@mentioned" collaborators), the Search Indexing Service (to update the document\'s content in Google Drive search), and the Activity Feed Service (to log changes for the document activity panel). The OT server itself does not call these services directly — Pub/Sub decouples the critical editing path from lower-priority downstream processing. If Search Indexing is slow, it does not affect the < 50ms collaborative edit latency.',
+        insight: 'Pub/Sub isolates the OT server from all non-critical downstream effects. The OT server\'s only job is: receive operation, transform it, apply it, store it, broadcast it. Everything else is a Pub/Sub subscriber.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Google Docs uses WebSocket for real-time bidirectional communication between the browser client and the Collaboration Server — the client sends operations up and receives transformed operations and presence events down. Google\'s global load balancer (a proprietary Anycast-based system) routes each user to the nearest Google data center for the initial WebSocket connection. However, because OT requires all collaborators on a document to connect to the SAME server process, users editing the same document may be routed to the same data center regardless of geography. A document created in the EU will have its OT server in an EU data center — a US collaborator has higher latency to that server than to a US data center, but the OT correctness requirement cannot be compromised. HTTPS is used for all API calls (document creation, sharing, metadata reads); WebSocket for real-time collaboration.',
+        insight: 'OT\'s single-server requirement creates a geographic constraint: the OT server location is determined by document origin, not collaborator location. A document with global collaborators has some users with non-optimal latency — unavoidable given the consistency requirement.',
+      },
     ],
 
     decisions: [
@@ -944,6 +1232,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'Storing debounced snapshots (e.g., every 5 seconds) would lose sub-second edits on crash and would make conflict resolution inaccurate (two 5-second edits might both affect the same content). Keystroke-level operation logging enables: precise conflict resolution, character-level version history, collaborative cursors that track exact character positions, and the ability to reconstruct any state. The storage cost (operations are small, ~100 bytes each) is justified by these capabilities.',
       },
+      {
+        question: 'CP vs AP for collaborative document state?',
+        chosen: 'CP — OT requires a single consistent serialization point',
+        reason:
+          'OT cannot function with eventual consistency. The transformation function takes "operation A" and "concurrent operation B" and produces "A\'" — a modified version of A that accounts for B. This computation requires knowledge of the complete operation history in order. Two servers independently accepting operations would produce different transformation results, leading to diverged documents. Google Docs therefore uses CP: one authoritative OT server per document, strong durability (writes to Bigtable before ACK), and a "reconnecting..." user experience during partitions rather than allowing diverged offline editing. This is the foundational constraint of OT-based collaboration.',
+      },
+      {
+        question: 'Bigtable vs Spanner for document storage?',
+        chosen: 'Bigtable for operation logs and content, Spanner for metadata',
+        reason:
+          'The workloads have completely different requirements. The operation log is append-heavy (every keystroke appends one row), accessed primarily as a range scan by documentId, and does not need SQL joins — Bigtable\'s wide-column model is optimal. Document metadata (title, owner, sharing permissions) requires relational queries ("show all documents shared with user X"), consistent reads for permission checks, and transactional updates (changing sharing permissions must be atomic) — Spanner\'s globally-consistent SQL is required. Mixing both workloads in one database would force suboptimal tradeoffs: Spanner is expensive for append-heavy time-series data; Bigtable cannot do relational queries for permissions.',
+      },
     ],
 
     interview: [
@@ -962,6 +1262,14 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       {
         q: 'How would you scale the collaboration server to 1B documents?',
         a: 'Partition by documentId. Each document\'s OT server is a single stateful process — only one server can handle a given document at a time (OT requires serialization). Documents are assigned to servers via consistent hashing. A document with 100 editors has all 100 WebSocket connections to the same server. For hot documents (a Google Form with 10K simultaneous responses), we cap collaborative editing at 100 simultaneous editors and queue additional connections. Server state (operation log) is persisted to Bigtable so documents can be migrated to new servers on crash.',
+      },
+      {
+        q: 'Why does Google Docs choose CP over AP and what is the user-visible consequence?',
+        a: 'OT requires a central server to serialize all operations — this is an architectural CP requirement, not a preference. The user-visible consequence: if your connection to the OT server is lost (network partition), Google Docs shows a "Reconnecting..." banner and your local edits are buffered in IndexedDB. You cannot see collaborators\' edits and they cannot see yours. When connection restores, the OT engine replays your buffered operations against the server\'s current state. Contrast with AP systems like Figma (CRDTs): you can keep editing offline and changes merge automatically. The trade-off is correctness vs offline capability — OT guarantees perfect convergence but requires connectivity; CRDTs allow offline editing but use more memory (every character has a permanent unique ID).',
+      },
+      {
+        q: 'How does Google Cloud Pub/Sub integrate with the Google Docs editing pipeline?',
+        a: 'Pub/Sub is used for all non-critical downstream effects of document changes. The OT server\'s critical path is: receive operation → transform → store in Bigtable → broadcast to collaborators via WebSocket. This must complete in < 50ms. Publishing to Pub/Sub happens asynchronously after the critical path. Subscribers include: (1) Search indexing — extracts text changes and updates the Drive search index (may lag by seconds). (2) Activity feed — records "Alice edited the title" events visible in the document sidebar. (3) Email notifications — "Bob mentioned you in a comment" emails. (4) Thumbnail generation — re-renders the document preview image. All of these are eventually consistent by nature — a slightly stale search index is far less harmful than a slow collaborative edit.',
       },
     ],
 
@@ -1059,6 +1367,30 @@ const REALWORLD_BASE: RealWorldSystem[] = [
           'The top 1% of videos (viral content, mainstream channels) account for 90%+ of views — these are cached aggressively at every edge node worldwide. The remaining 99% of videos (long tail) are rarely watched and would waste CDN cache space. YouTube serves long-tail videos directly from GCS regional buckets, accepting higher latency for rare content. The CDN is optimized for popular content; GCS is the universal fallback. This hybrid approach is more cost-effective than trying to cache everything.',
         insight: 'CDN economics follow a power law. Cache the head of the distribution aggressively; let the tail route to origin. Trying to cache everything would require 10× more CDN storage for <5% additional cache hit rate improvement.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'YouTube applies a split-CAP approach. View counts, comment counts, and recommendation rankings are AP: these are displayed as eventually consistent data. The view counter you see may be minutes behind the actual count — YouTube batches view count updates and applies them periodically rather than incrementing a counter on every view. During a partition, recommendations continue serving cached results rather than failing. This is the right trade-off: a video showing 1,000,000 views when the true count is 1,000,047 is invisible to users; a broken recommendation feed causes immediate churn. Upload processing and monetization are CP: a video must not be marked "publicly available" until transcoding is confirmed complete, and a creator\'s monetization eligibility must not be double-credited. These use strongly-consistent writes to Spanner.',
+        insight: 'View counts as AP is not just a performance optimization — it is a deliberate product decision. Exact view counts in real-time would require distributed atomic counters at 58,000 streams/sec, which would be far more expensive than the eventual-consistency batch update approach.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'YouTube uses Google\'s own infrastructure for its database layer. Bigtable stores video metadata — the row key is video_id, columns store title, description, upload timestamp, view count (batched), like count, and processing status. Bigtable\'s wide-column model handles the high write throughput from view count batching and the high read throughput from billions of daily video page loads. Cloud Spanner stores billing and monetization data — creator revenue, ad impressions, Content ID claims, and payment records. Spanner\'s globally consistent, ACID-compliant relational model is essential for financial accuracy across YouTube\'s global creator payments. Google Cloud Storage (GCS) stores the actual video files — raw uploads, all transcoded quality tiers, and HLS/DASH manifests. GCS is the source of truth for video content; CDN edges are caches.',
+        insight: 'The Bigtable/Spanner/GCS split maps precisely to three different requirements: high-throughput approximate reads/writes (Bigtable), financial accuracy (Spanner), and binary blob storage at exabyte scale (GCS).',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Google Cloud Pub/Sub is the event backbone for YouTube\'s transcoding pipeline. When a video upload completes, the Upload Service publishes an "UploadComplete" event to Pub/Sub. Separate worker pools subscribe to trigger parallel processing: one subscription triggers 360p transcoding, another triggers 1080p transcoding, another triggers 4K transcoding, another triggers Content ID fingerprinting, another triggers auto-caption generation, and another triggers thumbnail selection. Each worker pulls its message independently — if the 4K transcoding worker crashes mid-job, Pub/Sub redelivers the message and a new worker resumes. The "low-res first" policy works because the 360p subscriber is a simpler worker that completes first and marks the video streamable before higher-quality workers finish. Apache Kafka is used for YouTube\'s analytics pipeline — the clickstream of video watch events feeds recommendation models via Kafka topics consumed by Dataflow jobs.',
+        insight: 'Pub/Sub enables zero-code addition of new processing steps. Adding AI-generated chapter markers as a new feature means adding a new Pub/Sub subscription — no changes to the Upload Service or other processors.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'YouTube uses Google\'s own global CDN infrastructure — one of the world\'s largest, built on Google\'s private fiber network that spans continents. Google\'s BGP Anycast routes video segment requests to the nearest CDN edge node (called a Google Global Cache or GGC), many of which are placed directly inside ISPs — similar to Netflix\'s Open Connect strategy. Adaptive bitrate streaming uses both HLS (required for Apple devices) and MPEG-DASH — the player selects segments every 6 seconds based on measured bandwidth. QUIC (HTTP/3) is used where supported, reducing connection establishment overhead on mobile networks. For live streaming, YouTube uses a WebSocket-based ingestion protocol from encoders, with sub-10-second latency to viewers via HLS-based segment delivery.',
+        insight: 'Google\'s private fiber network is YouTube\'s CDN moat. Video segments from a California data center can reach a London CDN edge in ~60ms on Google\'s fiber — versus 100-150ms on the public internet. This private backbone is why Google\'s CDN consistently outperforms third-party CDNs for YouTube content.',
+      },
     ],
 
     decisions: [
@@ -1080,6 +1412,18 @@ const REALWORLD_BASE: RealWorldSystem[] = [
         reason:
           'Apple devices require HLS — Safari and iOS do not support MPEG-DASH natively. MPEG-DASH is an open standard with better codec support (VP9, AV1) and more efficient segment packaging. YouTube generates both sets of manifests from the same transcoded segments — the segments (video data) are codec-specific but the manifest formats (HLS vs DASH) are just different XML structures pointing to the same files. Running both adds < 1% storage overhead.',
       },
+      {
+        question: 'AP vs CP for view counts and monetization?',
+        chosen: 'AP for view counts, CP for monetization and upload status',
+        reason:
+          'View counts are approximate at all times — YouTube uses a batched counter update system where counts are periodically flushed rather than atomically incremented per view. This is AP: counts are eventually consistent, may lag by minutes. The cost of a slightly stale count is zero. Monetization is CP: when a video is claimed via Content ID or a creator\'s ad revenue is calculated, these writes must be strongly consistent — incorrect financial attribution affects creator payouts. Upload status is also CP: the video must not become publicly streamable until at least one quality tier is confirmed available in GCS and the CDN has been seeded. Using eventual consistency for upload status could result in users seeing a "video unavailable" error immediately after a creator publishes.',
+      },
+      {
+        question: 'Pub/Sub vs direct service calls for the transcoding pipeline?',
+        chosen: 'Google Cloud Pub/Sub for all transcoding and processing triggers',
+        reason:
+          'Direct service calls from the Upload Service to each processing worker would create tight coupling: adding a new processing step (e.g., AI chapter markers) would require modifying the Upload Service. Pub/Sub decouples completely: the Upload Service publishes one event; any number of subscribers can process it independently. More importantly, Pub/Sub provides at-least-once delivery with redelivery on failure — if a transcoding worker crashes mid-job, the message is redelivered to another worker. With direct calls, a worker crash would silently drop the transcoding job. For a pipeline processing 350 uploads/sec, silent failures are unacceptable.',
+      },
     ],
 
     interview: [
@@ -1097,7 +1441,15 @@ const REALWORLD_BASE: RealWorldSystem[] = [
       },
       {
         q: 'How would you design the adaptive bitrate streaming?',
-        a: 'Server side: transcode to 6+ quality tiers. Generate a master playlist (HLS .m3u8 or DASH .mpd) listing all tiers and their segment URLs. Segment duration: 6 seconds. Client side: player downloads the master playlist on load. Every 6 seconds, the player measures: current download speed, buffer fill (seconds buffered). It selects the highest quality tier whose bitrate ≤ 80% of measured bandwidth. Switches happen at segment boundaries — no mid-segment interruption. No server involvement in quality selection.',
+        a: 'Server side: transcode to 6+ quality tiers. Generate a master playlist (HLS .m3u8 or DASH .mpd) listing all tiers and their segment URLs. Segment duration: 6 seconds. Client side: player downloads the master playlist on load. Every 6 seconds, the player measures: current download speed, buffer fill (seconds buffered). It selects the highest quality tier whose bitrate <= 80% of measured bandwidth. Switches happen at segment boundaries — no mid-segment interruption. No server involvement in quality selection.',
+      },
+      {
+        q: 'How does YouTube\'s CAP choice manifest differently for view counts vs monetization?',
+        a: 'YouTube uses AP for view counts: the displayed count is batched and may be minutes stale. The implementation uses a distributed counter that periodically flushes increments to Bigtable — no atomic write per view. At 58,000 concurrent streams, atomic per-view increments would require distributed locking that would become the bottleneck. The stale count is invisible to users. Monetization uses CP: creator revenue attribution via Content ID claims and ad impressions uses Spanner\'s strongly-consistent transactions. A double-credit on a Content ID claim would pay a rights holder twice for the same view — a real financial loss. The asymmetry: a slightly wrong view count costs nothing; a wrong monetization credit costs money.',
+      },
+      {
+        q: 'How does Pub/Sub enable the "low-res first" availability policy in YouTube\'s pipeline?',
+        a: 'When an upload completes, the Upload Service publishes one "UploadComplete" event. Multiple Pub/Sub subscriptions trigger different transcoding workers simultaneously: the 360p worker, the 720p worker, the 1080p worker, and the 4K worker all start in parallel. The 360p worker completes first (simple encode, small output). Upon completion, the 360p worker publishes a "QualityTierReady" event. A subscriber to this event updates the video\'s status in Bigtable to "streamable at 360p" and makes the video publicly visible. The creator sees their video live within ~90 seconds of upload completion. Higher-quality tiers become available as they complete, automatically updating the manifest. This graduated availability is only possible because Pub/Sub allows independent parallel consumers of the same upload event.',
       },
     ],
 

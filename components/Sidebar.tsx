@@ -35,7 +35,7 @@ const SIDEBAR_GROUPS = [
     id: 'databases',
     label: 'Databases',
     emoji: '🗄️',
-    cats: ['redis', 'postgres', 'mongodb', 'dsa'],
+    cats: ['redis', 'postgres', 'mongodb', 'dsa', 'data-modeling'],
   },
   {
     id: 'backend',

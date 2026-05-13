@@ -172,6 +172,17 @@ const diagrams: Record<string, React.LazyExoticComponent<() => React.ReactElemen
   'laravel-queues':            lazy(() => import('@/components/diagrams/LaravelQueuesDiagram')),
   'laravel-auth':              lazy(() => import('@/components/diagrams/LaravelAuthDiagram')),
   'laravel-middleware':        lazy(() => import('@/components/diagrams/LaravelMiddlewareDiagram')),
+  // Data Modeling
+  'schema-one-to-one':      lazy(() => import('@/components/diagrams/SchemaOneToOneDiagram')),
+  'schema-one-to-many':     lazy(() => import('@/components/diagrams/SchemaOneToManyDiagram')),
+  'schema-many-to-many':    lazy(() => import('@/components/diagrams/SchemaManyToManyDiagram')),
+  'schema-normalization':   lazy(() => import('@/components/diagrams/SchemaNormalizationDiagram')),
+  'schema-nosql-patterns':  lazy(() => import('@/components/diagrams/SchemaNoSQLPatternsDiagram')),
+  'schema-whatsapp':        lazy(() => import('@/components/diagrams/SchemaWhatsAppDiagram')),
+  'schema-ecommerce':       lazy(() => import('@/components/diagrams/SchemaEcommerceDiagram')),
+  'schema-fintech':         lazy(() => import('@/components/diagrams/SchemaFintechDiagram')),
+  'schema-erd':             lazy(() => import('@/components/diagrams/SchemaERDDiagram')),
+  'schema-indexing':        lazy(() => import('@/components/diagrams/SchemaIndexingDiagram')),
 };
 
 export default function DiagramTab({ concept }: { concept: Concept }) {

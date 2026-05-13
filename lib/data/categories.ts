@@ -27,4 +27,5 @@ export const CATEGORIES: Category[] = [
   { id: 'fastapi',        label: 'FastAPI',                color: '#009688' },
   { id: 'python',         label: 'Python',                 color: '#3776ab' },
   { id: 'laravel',        label: 'Laravel',                color: '#ff2d20' },
+  { id: 'data-modeling', label: 'Data Modeling', color: '#f97316' },
 ];

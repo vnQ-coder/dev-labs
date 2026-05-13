@@ -30,6 +30,7 @@ import { CONCEPTS_NESTJS } from './concepts-nestjs';
 import { CONCEPTS_FASTAPI } from './concepts-fastapi';
 import { CONCEPTS_PYTHON } from './concepts-python';
 import { CONCEPTS_LARAVEL } from './concepts-laravel';
+import { CONCEPTS_SCHEMA } from './concepts-schema';
 
 export const CONCEPTS: Concept[] = [
   ...CONCEPTS_PART1,
@@ -63,4 +64,5 @@ export const CONCEPTS: Concept[] = [
   ...CONCEPTS_FASTAPI,
   ...CONCEPTS_PYTHON,
   ...CONCEPTS_LARAVEL,
+  ...CONCEPTS_SCHEMA,
 ];
