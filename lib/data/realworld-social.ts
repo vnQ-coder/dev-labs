@@ -112,6 +112,34 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
         description:
           'Discord guarantees at-most-once delivery (not at-least-once) for real-time events. If your WebSocket drops, you reconnect and request a "replay" of missed events using your last received event ID (the Snowflake). The Gateway returns all events since that ID from Cassandra. This makes Discord\'s messaging eventually consistent — a brief disconnect might miss a few events until replay catches up.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Discord chooses AP (Availability + Partition Tolerance) over CP. During a network partition, Discord gateways continue delivering messages from local state rather than blocking and waiting for consistency. This means two users in the same channel may briefly see messages in different orders, or a message might appear to deliver successfully on the sender\'s side but be delayed reaching some gateway pods. Cassandra — Discord\'s message store — is natively AP: it uses eventual consistency with a tunable replication factor. Writes are acknowledged when a quorum of replicas confirms, but reads may return slightly stale data. Discord accepts this because a message arriving 200ms late is far better than the app appearing frozen. The guarantee Discord makes: messages are never permanently lost (durable write to Cassandra) but real-time delivery may be temporarily inconsistent across gateway pods during partition events.',
+        insight:
+          'For a chat application, user experience demands availability. A frozen Discord during a partition would feel broken. Slightly out-of-order messages are invisible to most users — they never perceive sub-second ordering differences in a fast-moving chat.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Discord uses Apache Cassandra for message storage rather than PostgreSQL or MySQL. The schema is designed around the access pattern: partition key = (channel_id, bucket) where bucket = message_timestamp / BUCKET_MS (a time-window integer, e.g. 10-minute buckets). The clustering key = message_id (Snowflake). This means all messages for a channel within a time bucket are co-located on the same Cassandra node — a single disk seek retrieves all recent messages. SQL databases fail at this scale for three reasons: (1) B-tree indexes on billions of rows degrade — index maintenance becomes the bottleneck. (2) Sharding SQL requires application-level routing, losing JOIN capability across shards. (3) SQL write paths involve WAL, locking, and B-tree updates — at 200K msg/sec, this creates contention. Cassandra\'s LSM-tree (Log-Structured Merge-tree) converts random writes into sequential disk appends — optimal for append-heavy workloads like message logs. The trade-off: Cassandra has no JOIN support and limited query flexibility — Discord\'s queries are intentionally simple (fetch N messages by channel + time range), which fits the key-value access pattern perfectly.',
+        insight:
+          'The rule: pick your database based on your access pattern, not familiarity. Discord\'s access pattern is "give me the last 100 messages for channel X" — Cassandra\'s partition model makes this a single-node operation at any scale.',
+      },
+      {
+        title: 'Message Broker: Why Kafka?',
+        description:
+          'Discord uses Apache Kafka as the backbone for event routing between services. Kafka topics are partitioned by channel_id, meaning all events for a given channel flow through the same partition — preserving ordering and allowing stateful consumers. The fanout service, presence service, and analytics pipelines all run as separate Kafka consumer groups, each processing the same event stream independently without coordination. Kafka\'s key advantages over RabbitMQ or AWS SQS: (1) Retention — Kafka retains messages for 7 days by default, enabling replay for new consumers and debugging. RabbitMQ deletes messages after consumption. (2) Throughput — Kafka achieves millions of events/sec per broker via sequential disk I/O and zero-copy networking. SQS is limited to ~3,000 msg/sec per queue without batching. (3) Consumer groups — Kafka allows N independent consumer groups to each receive every message, enabling fan-out to fanout service + analytics + audit log simultaneously without duplicate publishing. Discord partitions Kafka by channel_id for message events and by guild_id for presence events, ensuring related events are processed in order within a partition.',
+        insight:
+          'Kafka\'s log retention is underrated. When Discord deploys a new consumer service, it can replay the last 7 days of events from Kafka to bootstrap state — without touching the primary Cassandra store. This decouples new feature development from historical data migration.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'Discord uses WebSocket (WSS) for all client-to-gateway communication. HTTP polling was rejected because Discord delivers 46K events/sec globally — each event is server-initiated (someone else\'s message, presence update, typing indicator). HTTP polling would require clients to poll every 100ms to match Discord\'s latency SLA, generating 80M requests/sec for 8M connected clients — a 10,000× overhead vs WebSocket. Server-Sent Events (SSE) was rejected because it is unidirectional: clients also need to send messages, heartbeats, and commands to the gateway. WebSocket provides full-duplex communication over a single TCP connection. Load balancing for WebSocket requires sticky sessions — Discord uses consistent hashing based on user_id to route a user to the same gateway pod, preserving connection state. Internal services (fanout service, presence service, media transcoding) communicate via gRPC over HTTP/2 — strongly typed, efficient binary serialization, and streaming support for long-lived server-to-server calls. CDN (Cloudflare) handles all static assets: avatars, server icons, emoji images, and embedded media thumbnails. Voice data uses WebRTC\'s SRTP over UDP — TCP\'s retransmission guarantees are detrimental for real-time audio (a retransmitted audio packet from 200ms ago is useless).',
+        insight:
+          'Protocol choice is latency choice. WebSocket eliminates HTTP handshake overhead for server-push events. UDP for voice eliminates head-of-line blocking — a lost audio packet is better dropped than retransmitted late.',
+      },
     ],
 
     decisions: [
@@ -133,6 +161,24 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
         reason:
           'Message history is append-only, partitioned by channel, and read by recency. Cassandra\'s partition key = channel_id makes all messages for a channel co-located on the same node — O(1) recent-message lookup. PostgreSQL B-tree indexes for time-range queries degrade at billions of rows; Cassandra\'s SST-based storage handles petabytes without index maintenance overhead.',
       },
+      {
+        question: 'CAP theorem choice: CP vs AP for real-time messaging',
+        chosen: 'AP (Availability + Partition Tolerance)',
+        reason:
+          'During a network partition, Discord chooses to keep delivering messages from available nodes rather than blocking until consistency is restored. For a chat app, a frozen UI is worse than a briefly out-of-order message. Cassandra\'s eventual consistency model aligns with this — writes are acknowledged by a quorum, reads may return slightly stale data, but the system never refuses service. Message durability is guaranteed (write to Cassandra before ack); real-time delivery ordering is best-effort.',
+      },
+      {
+        question: 'Kafka vs RabbitMQ vs SQS for event routing',
+        chosen: 'Apache Kafka',
+        reason:
+          'Kafka provides ordered event delivery per partition (critical for message ordering per channel), consumer group isolation (fanout, analytics, and audit log each get independent streams), multi-day retention for replay, and millions of events/sec throughput. RabbitMQ deletes messages after consumption, preventing replay. SQS has throughput limits and no ordering guarantee without FIFO queues (which have even lower throughput).',
+      },
+      {
+        question: 'gRPC vs REST for internal service communication',
+        chosen: 'gRPC (internal) + WebSocket (client-facing)',
+        reason:
+          'gRPC uses Protocol Buffers (binary, typed, compact) and HTTP/2 multiplexing for internal service calls. At Discord\'s event volume, the overhead of JSON serialization and HTTP/1.1 connection setup is measurable. gRPC streaming is also used for long-lived server-to-server connections like the fanout service streaming events to gateway pods. REST is used only for external public API endpoints where client compatibility matters.',
+      },
     ],
 
     interview: [
@@ -146,11 +192,19 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
       },
       {
         q: 'How does Discord\'s presence system work at 19M active servers without becoming a bottleneck?',
-        a: 'Discord limits presence subscriptions to what is actually visible on the client. For servers under 1,000 members, the client subscribes to individual presence updates. For servers over 1,000 members, the client receives only an aggregate online count, synthesized server-side from a Redis HyperLogLog per guild. Presence events are published to Kafka and fanned out only to subscribers — not broadcast to all gateway pods. This converts a potentially O(N²) fan-out (every member\'s status change delivered to all N other members) into an O(visible members) fan-out, which is bounded by the client\'s viewport.',
+        a: 'Discord limits presence subscriptions to what is actually visible on the client. For servers under 1,000 members, the client subscribes to individual presence updates. For servers over 1,000 members, the client receives only an aggregate online count, synthesized server-side from a Redis HyperLogLog per guild. Presence events are published to Kafka and fanned out only to subscribers — not broadcast to all gateway pods. This converts a potentially O(N^2) fan-out (every member\'s status change delivered to all N other members) into an O(visible members) fan-out, which is bounded by the client\'s viewport.',
       },
       {
         q: 'How would you design Discord\'s message history retrieval to be instantly fast at billions of messages?',
         a: 'The key is the Cassandra data model: partition key = (channel_id, bucket) where bucket is a time-derived integer (e.g., floor(timestamp / BUCKET_SIZE)). All messages for a channel within a time window live on one Cassandra partition — one disk seek. Recent messages (last 100) are also cached in Redis keyed by channel_id so the common case (loading a channel) hits Redis and returns sub-millisecond. Discord\'s Snowflake IDs embed the timestamp, so "messages after ID X" is a Cassandra range scan by ID rather than requiring a secondary timestamp index. For very old messages (multi-year history), bucket-based partitioning limits partition size and avoids the "hot partition" problem of storing all messages for a popular channel in one unbounded partition.',
+      },
+      {
+        q: 'How does Discord handle fan-out to a 500K-member server — why not just write to every member\'s inbox?',
+        a: 'Writing to every member\'s inbox (push model) would require 250K Redis writes per message for a 500K-member server with 50% online — at 200K msg/sec peak, that is 50B Redis writes/sec, impossible. Discord uses a gateway-broadcast model instead: the dispatcher identifies which gateway pods host connections for members of that guild and broadcasts the event to those pods only. Each pod then delivers to its local connected sockets. The key optimization is that the dispatcher only contacts pods with active connections — if 250K online members are spread across 2,500 gateway pods (100 members/pod), the dispatcher sends 2,500 events, not 250K. The scatter is to pods, not to individual connections.',
+      },
+      {
+        q: 'Why does Discord use Cassandra over PostgreSQL? What specific schema decisions make it work?',
+        a: 'PostgreSQL B-tree indexes degrade at billions of rows — index maintenance locks, bloat, and checkpoint pressure become unavoidable. Sharding PostgreSQL sacrifices JOIN capability. Cassandra\'s LSM-tree converts all writes to sequential disk appends, giving consistent write throughput regardless of dataset size. The schema: PRIMARY KEY ((channel_id, bucket), message_id) where bucket = message_timestamp / 86400000 (daily buckets). channel_id + bucket is the partition key, co-locating all messages for a channel-day on one node. message_id (Snowflake) is the clustering key, providing chronological sort order. Fetching the last 50 messages is: SELECT * FROM messages WHERE channel_id = X AND bucket = TODAY ORDER BY message_id DESC LIMIT 50 — one partition, one seek. This query stays O(1) regardless of total message count in the system.',
       },
     ],
 
@@ -274,6 +328,34 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
         insight:
           'Local in-process caching with a 1-second TTL is the viral tweet defense. The trade-off (1 second of stale like counts) is invisible to users but provides a 100× reduction in Redis hot-key pressure during the exact moments when traffic is highest.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Twitter chooses AP (Availability + Partition Tolerance) for timelines and social graph reads. During a network partition, Twitter continues serving timelines from whatever data is available — a user may see a slightly stale timeline (missing the last few seconds of tweets) rather than receiving an error. This is "eventual consistency" for feeds: the guarantee is that timelines will converge to the correct state, not that they are immediately consistent. Twitter\'s tweet store (MySQL sharded) prioritizes CP for the canonical tweet record — a tweet, once written, must not be lost. But the fanout layer and timeline caches are AP: a Redis ZADD that fails due to a network partition is retried asynchronously, and the follower\'s timeline may lag by seconds. For social media, this trade-off is correct: users tolerate a tweet appearing a few seconds late; they cannot tolerate timeline pages returning HTTP 500.',
+        insight:
+          'Twitter applies CAP at the subsystem level, not the whole system. The write path to MySQL (canonical tweet) is CP. The read path (timeline cache, fanout) is AP. Mixing consistency models per subsystem based on user-facing impact is the mature approach.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Twitter uses a multi-database strategy. Tweets themselves are stored in MySQL sharded by tweet_id — MySQL because tweets are immutable after posting, the access pattern is pure key lookup (tweet by ID), and ACID guarantees prevent tweet loss. At Twitter\'s scale, MySQL is horizontally sharded: tweet_id % num_shards determines the shard. The social graph (follow relationships) is stored in a custom graph store (FlockDB, now deprecated; replaced by internal graph services backed by MySQL). The timeline cache uses Redis ZSETs. Engagement counts (likes, retweets, replies) are stored in Manhattan, Twitter\'s internal distributed key-value store, optimized for high write throughput from atomic increments. A pure NoSQL approach for tweets was considered but rejected: Cassandra\'s eventual consistency for the canonical tweet record would risk tweet duplication or loss during partition recovery — unacceptable for the primary content store. NoSQL excels for the high-write, high-read count data (Manhattan for engagements) where eventual consistency is acceptable.',
+        insight:
+          'Choosing SQL for tweets and NoSQL for engagements is not inconsistency — it is precision. Tweets require durability guarantees (CP); like counts require write throughput and tolerate eventual consistency (AP). Match the database to the consistency requirement of each data type.',
+      },
+      {
+        title: 'Message Broker: Why Kafka?',
+        description:
+          'Twitter uses Kafka as the central event bus connecting tweet writes to the fanout service, notification service, search indexer (Earlybird), analytics, and ML feature pipelines. Kafka topics are partitioned by user_id for follow-graph events and by tweet_id for engagement events. Each downstream consumer (fanout, notifications, Earlybird indexer) operates as an independent Kafka consumer group — they all receive every tweet event without coordinating. Kafka\'s throughput advantage is critical at Twitter\'s scale: 5,800 tweets/sec × average 200 followers = 1.16M fanout events/sec sustained, with 300K tweet/sec peaks generating 60M fanout events/sec. Kafka handles this via sequential disk writes and zero-copy networking — a single Kafka broker sustains 1M+ events/sec. RabbitMQ at this throughput would require thousands of queues and complex routing topologies. SQS FIFO queues cap at 3,000 msg/sec per queue. Kafka also retains events for 7 days: when Earlybird\'s search index falls behind, it can replay from Kafka without impacting the primary tweet store.',
+        insight:
+          'Kafka\'s consumer group model is what makes Twitter\'s pipeline composable. Adding a new downstream consumer (e.g., a new ML feature store) requires zero changes to the tweet write path — subscribe a new consumer group to the existing topic and replay from the beginning.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'Twitter\'s client communication uses HTTPS/REST for most reads (timeline, tweet fetches) and Server-Sent Events (SSE) for streaming timeline updates to web clients. Unlike Discord, Twitter\'s communication is predominantly read-heavy and request-response oriented — a user requests their timeline and Twitter returns it. SSE is sufficient for streaming new tweets to an open tab (unidirectional server push). WebSocket is used only for the direct message (DM) inbox, which requires bidirectional communication. Internally, Twitter\'s services communicate via Finagle (Twitter\'s open-source RPC framework built on Netty), which uses Thrift serialization — analogous to gRPC but predating it. Consistent hashing routes requests for the same user\'s timeline to the same API server tier cluster, improving local cache hit rates. Cloudflare and Twitter\'s own CDN (via PoPs) serve all media — images, videos, and GIFs are stored in S3-compatible blob storage and served from the nearest CDN edge. Tweet content API responses are cached at the CDN edge for a short TTL (1-5 seconds), absorbing viral tweet read spikes before they reach origin servers.',
+        insight:
+          'Twitter chooses SSE over WebSocket for timeline streaming because tweets flow one direction: server to client. WebSocket\'s bidirectional overhead is unnecessary for a read-dominated feed. Protocol minimalism — use only what the use case requires.',
+      },
     ],
 
     decisions: [
@@ -295,6 +377,24 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
         reason:
           'Standard Lucene is not real-time — index merges happen in batch. Twitter modified Lucene to use a write-optimized in-memory segment that is queryable immediately, then flushed to disk. This delivers the 15-second indexing SLA. Standard Elasticsearch (which uses Lucene) cannot meet this without similar modifications.',
       },
+      {
+        question: 'CAP theorem choice: CP vs AP for timeline reads',
+        chosen: 'AP (Availability + Partition Tolerance)',
+        reason:
+          'During a network partition, Twitter continues serving timelines from cached data rather than blocking. A user seeing a timeline that is 10 seconds stale is acceptable — a timeline page that returns an error is not. The tweet write path (MySQL) is CP for canonical durability, but all read paths (Redis timeline cache, CDN, API cache) are AP with eventual consistency. This split applies CAP at the appropriate layer for each user-facing guarantee.',
+      },
+      {
+        question: 'Kafka vs SQS vs RabbitMQ for event routing',
+        chosen: 'Apache Kafka',
+        reason:
+          'At 5,800 tweets/sec with 200 avg followers, fanout generates 1.16M events/sec sustained. Kafka handles millions of events/sec per broker via sequential I/O. Multiple independent consumer groups (fanout, notifications, search indexer, analytics) each receive every event without the publisher managing separate queues per consumer. 7-day retention allows replay for new consumers and incident recovery.',
+      },
+      {
+        question: 'SQL vs NoSQL for engagement counts (likes, retweets)',
+        chosen: 'Manhattan (internal NoSQL key-value store)',
+        reason:
+          'Like counts receive millions of atomic increments per second during viral events — a pattern that causes severe lock contention in SQL. Manhattan is purpose-built for high-throughput atomic increments with eventual consistency. The trade-off (like counts may be off by a small margin during partition recovery) is acceptable; tweet durability is not sacrificed because tweets themselves remain in MySQL.',
+      },
     ],
 
     interview: [
@@ -313,6 +413,14 @@ export const REALWORLD_SOCIAL: RealWorldSystem[] = [
       {
         q: 'How does Twitter handle hot tweets that receive 1M likes in 10 minutes without melting the database?',
         a: 'Three layers of caching defend against hot tweets. First, like counts are stored in Redis with atomic INCR — not in MySQL — so like writes are single Redis operations at high throughput. Second, tweet content is cached in a distributed Redis cluster keyed by tweet_id. A viral tweet will hit the same shard repeatedly, creating a hot key. Twitter mitigates this with local in-process (heap) caching in each API server with a 1-second TTL — 1,000 API servers absorb 100K reads/sec locally, reducing the Redis shard to ~1,000 QPS. Third, for extreme viral events, Twitter can replicate hot tweet entries across multiple Redis slots (key sharding with a random suffix) and read from any replica. The trade-off — slightly stale like counts for 1 second — is imperceptible to users and avoids a cascading Redis failure.',
+      },
+      {
+        q: 'Why does Twitter use eventual consistency for timelines? Is that safe?',
+        a: 'Eventual consistency is safe for timelines because the failure mode is benign: a user sees a tweet 5 seconds late. The alternative — blocking timeline reads until all fanout writes are consistent — would mean every Obama tweet causes 130M read requests to wait. Twitter applies strong consistency only where data loss is unacceptable (the canonical tweet in MySQL uses synchronous replication). Timeline caches (Redis ZSETs) use eventual consistency: a failed fanout write is retried asynchronously, and the timeline converges to correct state within seconds. This is the CAP AP choice — availability over consistency — with the key insight that "slightly stale timeline" is a user-invisible failure mode, while "timeline page error" is a user-visible failure. Match your consistency model to the user impact of inconsistency, not to a blanket policy.',
+      },
+      {
+        q: 'SQL vs NoSQL for social media — when would you choose each?',
+        a: 'Choose SQL (MySQL/PostgreSQL) when: data is the canonical source of truth requiring ACID guarantees (tweets, user accounts, payment records), access patterns are key-value or simple range queries on a bounded dataset, and schema is stable. Choose NoSQL when: write throughput requirements exceed what a single SQL primary can sustain (engagement counts needing millions of atomic increments/sec → Manhattan/Redis), access patterns are append-only time-series with time-range reads (message history → Cassandra partition by (channel_id, bucket)), or the data is a cache layer where eventual consistency is acceptable (timeline caches → Redis). Twitter uses both in the same product: MySQL for tweets (CP, durable), Redis for caches (AP, fast), Manhattan for counts (AP, high-throughput). The question is never "SQL or NoSQL globally" — it is "what consistency and throughput does this specific data type require?"',
       },
     ],
 

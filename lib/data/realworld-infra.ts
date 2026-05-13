@@ -127,6 +127,34 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
         insight:
           'At sufficient scale, API costs become infrastructure costs. Internalizing the mapping stack paid for itself within a year and gave Uber a traffic data advantage no third party could match.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Uber Dispatch is CP (Consistent + Partition Tolerant) for driver location and dispatch. A stale driver location is not just inaccurate — it causes wrong dispatch decisions: the system might assign a driver who is already 3km away from the cached position. Uber sacrifices availability during partitions rather than serve stale location data. The Redis cluster uses quorum writes (majority of replicas must acknowledge) for driver state transitions. During a network partition, the dispatch service returns errors rather than use potentially stale driver locations. Payments are also strongly consistent via ACID transactions in PostgreSQL.',
+        insight:
+          'For dispatch, stale location = wrong driver selected. A few seconds of unavailability during a partition is far less harmful than dispatching a driver 5km away because the system read a stale cache. CP is the only viable choice here.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Uber uses a multi-database architecture aligned to each data type\'s requirements. MySQL (schemaless, via Schemaless — Uber\'s internal layer) stores trip metadata with flexible schema evolution. PostgreSQL handles ACID-critical operations: driver state transitions, payment records, and user accounts — where multi-row transactions are mandatory. Redis serves real-time driver locations with TTL-based expiry (ephemeral, write-heavy, O(1) reads). Cassandra stores historical trip events (append-only, time-series, high write throughput, eventual consistency acceptable). Flink aggregates driver GPS streams into the surge pricing index stored back in Redis.',
+        insight:
+          'Each database is chosen for its data access pattern: Redis for ephemeral sub-10-second location state, Cassandra for immutable event history, PostgreSQL for ACID-critical financial records. Polyglot persistence, not a single database.',
+      },
+      {
+        title: 'Message Broker Architecture',
+        description:
+          'Uber uses Apache Kafka as its primary event backbone. Driver location pings are published to a Kafka topic partitioned by driver_id — this guarantees ordered delivery of location updates per driver, preventing a stale ping from overwriting a newer one. Trip state machine transitions publish events to separate Kafka topics consumed by downstream services: payment processing, push notifications, analytics pipelines, and the driver earnings service. Kafka\'s log compaction retains the latest state per driver_id, so consumers joining late get current state without replaying the full history. At 5.6B events/day, Kafka clusters are sized to handle sustained 65K events/sec with 7-day retention.',
+        insight:
+          'Partitioning Kafka topics by driver_id is critical — it ensures ordered location updates per driver. Without it, concurrent pings could be processed out of order, resulting in a driver\'s location jumping backwards.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'Uber uses gRPC for driver app communication. The driver app maintains a persistent bidirectional gRPC stream to the Location Service — one stream handles both outbound location pings (driver → server) and inbound dispatch offers (server → driver). gRPC\'s binary Protobuf encoding reduces payload size by ~60% versus JSON REST (a GPS ping is ~50 bytes Protobuf vs ~130 bytes JSON). This matters at 1.25M pings/sec: 50MB/s vs 130MB/s ingress. HTTP/2 multiplexing means one TCP connection handles both the location ping stream and the offer push stream. The rider-facing API uses REST/JSON for simplicity — rider traffic is orders of magnitude lower than driver location volume.',
+        insight:
+          'gRPC bidirectional streaming solves two problems at once: efficient high-frequency location upload from driver to server, and low-latency push of dispatch offers from server to driver — on the same persistent connection.',
+      },
     ],
     decisions: [
       {
@@ -147,6 +175,24 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
         reason:
           'Pull (driver polls for jobs) introduces latency proportional to poll interval. At 5-second polls, rider waits up to 5 extra seconds. Push delivers the offer in <100ms. Timeout (10 seconds to accept) prevents a driver from holding up the queue — if they don\'t respond, the offer cascades to the next candidate.',
       },
+      {
+        question: 'CP vs AP for driver location consistency (CAP choice)',
+        chosen: 'CP — Consistent + Partition Tolerant',
+        reason:
+          'Driver location must be consistent to dispatch correctly. A stale location causes wrong driver assignment — the selected driver may be far away, degrading rider experience and wasting driver time. During partitions, Uber prefers returning dispatch errors over serving stale data. Quorum writes to Redis ensure consistency across replicas. The brief unavailability during a partition is acceptable; dispatching from stale data is not.',
+      },
+      {
+        question: 'Kafka vs RabbitMQ for driver location event streaming',
+        chosen: 'Apache Kafka',
+        reason:
+          'Driver location generates 5.6B events/day — Kafka\'s log-based architecture handles sustained high throughput without message loss. Partitioning by driver_id guarantees ordered processing of location updates per driver, which is critical to prevent stale pings overwriting newer ones. Kafka\'s consumer group model allows multiple downstream consumers (surge engine, analytics, ETA service) to independently replay the same stream. RabbitMQ\'s queue model would require message duplication for each consumer.',
+      },
+      {
+        question: 'gRPC vs REST/WebSocket for driver app communication',
+        chosen: 'gRPC with bidirectional streaming',
+        reason:
+          'The driver app needs two simultaneous channels: high-frequency location uploads (driver → server) and low-latency dispatch offer pushes (server → driver). gRPC bidirectional streaming on a single HTTP/2 connection handles both. Protobuf encoding reduces location ping payload from ~130 bytes (JSON) to ~50 bytes — saving 80MB/s of ingress at 1.25M pings/sec. WebSockets would require custom framing and lack Protobuf\'s schema enforcement.',
+      },
     ],
     interview: [
       {
@@ -164,6 +210,14 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
       {
         q: 'How do you prevent a driver from being double-booked by two simultaneous ride requests?',
         a: 'Before sending an offer to a driver, the Dispatch Service acquires a Redis Redlock on the driver\'s ID. Lock TTL = 15 seconds (the offer window). Only one dispatch worker can hold the lock — the second attempt fails and moves to the next candidate. The driver\'s state transition (AVAILABLE → MATCHED) is written to PostgreSQL inside the lock. If the driver declines or times out, the lock is released and state reverts to AVAILABLE.',
+      },
+      {
+        q: 'How does Uber ensure driver location consistency — why is CP chosen over AP?',
+        a: 'Uber chooses CP (Consistent + Partition Tolerant) for driver location because a stale location causes incorrect dispatch: the system might select a driver whose cached position is 3km away from their actual position, while a closer driver is missed. During a network partition, the dispatch service returns errors rather than read from potentially stale replicas. Redis is configured with quorum writes — a location update must be acknowledged by the majority of replicas before being readable. The brief unavailability during partitions is acceptable; dispatching from stale location data causes real-world harm to riders and drivers.',
+      },
+      {
+        q: 'How does Uber handle surge pricing calculations at 150,000 geographic cells updated every 60 seconds?',
+        a: 'An Apache Flink streaming job continuously consumes driver location events and ride request events from Kafka. Every 60 seconds it emits per-cell aggregates: active drivers (supply) and unmatched requests (demand) per H3 cell. Surge multiplier = max(1, (demand/supply)^0.5 × base_multiplier). The 150K cell results are bulk-written to Redis as individual keys (cell_id → surge_multiplier). The Pricing API does a single Redis GET per cell_id at request time — O(1), ~1ms. Flink\'s stateful streaming ensures exactly-once processing so cells are never double-counted. The entire pipeline — event ingestion to Redis write — completes in under 30 seconds, giving a 2× safety margin on the 60-second update SLA.',
       },
     ],
     keyInsight:
@@ -270,7 +324,7 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
       {
         title: 'Double-booking at scale — the idempotency layer',
         description:
-          "Two guests clicking \"Book\" simultaneously for the same listing and dates is the most dangerous race condition. Airbnb's defense is three-layered: (1) Redis distributed lock prevents concurrent booking attempts; (2) PostgreSQL CHECK constraint ensures no overlapping date ranges per listing (implemented via PostgreSQL's EXCLUDE constraint with daterange type and && operator); (3) Stripe payment is authorized only after the lock is held and availability confirmed. The EXCLUDE constraint is the last line of defense if the lock fails.",
+          "Two guests clicking 'Book' simultaneously for the same listing and dates is the most dangerous race condition. Airbnb's defense is three-layered: (1) Redis distributed lock prevents concurrent booking attempts; (2) PostgreSQL CHECK constraint ensures no overlapping date ranges per listing (implemented via PostgreSQL's EXCLUDE constraint with daterange type and && operator); (3) Stripe payment is authorized only after the lock is held and availability confirmed. The EXCLUDE constraint is the last line of defense if the lock fails.",
         insight:
           "Defense in depth: optimistic locking at the application layer, database constraints as the safety net, and payment authorization only after both checks pass — each layer compensates for the one above it failing.",
       },
@@ -295,6 +349,34 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
         insight:
           'Session-scoped price locking is a soft reservation — it protects the guest experience without the complexity of a price-hold transaction in the database. The 30-minute TTL is long enough for checkout but short enough to not hold prices indefinitely.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Airbnb applies different CAP trade-offs to different operations. Search is AP (Available + Partition Tolerant): showing a listing that turns out to be already booked is a minor UX friction — the guest discovers unavailability at checkout, not a catastrophic error. Elasticsearch uses eventual consistency; a new booking may not appear in search results for up to 5 seconds. This is acceptable. Booking itself is CP (Consistent + Partition Tolerant): the actual reservation uses pessimistic locking (Redis Redlock + PostgreSQL EXCLUDE constraint). During a partition, bookings fail rather than risk double-booking. Optimistic locking (compare-and-swap on a version column) is used for host calendar edits, where conflicts are rare and retries are cheap.',
+        insight:
+          'Airbnb\'s genius is applying CP selectively: only to the booking transaction itself. Search, calendar display, and pricing are all AP — prioritizing availability and speed. This maximizes throughput for the 99.9% of requests that are reads while guaranteeing correctness for the 0.1% that are writes.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Airbnb uses a purpose-fit database per domain. MySQL stores bookings, payments, user accounts, and host payout records — all requiring ACID guarantees and relational integrity (a booking must atomically reference a listing, guest, host, and payment). The PostgreSQL EXCLUDE constraint prevents overlapping date ranges at the database level. Elasticsearch powers the listing search index: geo_point fields enable geo_distance queries, nested amenity fields enable multi-filter search, and aggregations power faceted counts (e.g., 342 listings with a pool). Amazon S3 stores listing photos (7M listings × avg 20 photos = ~140M images); Fastly CDN serves them at the edge. Redis holds the availability bitmaps (640 MB total) and session-scoped price locks.',
+        insight:
+          'MySQL for transactional correctness, Elasticsearch for flexible search, S3 for object storage, Redis for real-time ephemeral state. Each database is chosen because a general-purpose alternative would fail under the specific access pattern of that domain.',
+      },
+      {
+        title: 'Message Broker Architecture',
+        description:
+          'Airbnb uses AWS SNS and SQS for event-driven notification flows. When a booking is confirmed, the Booking Service publishes a BookingConfirmed event to an SNS topic. SNS fans out to multiple SQS queues: one for the Host Notification Service (sends SMS/email/push to host within 5 seconds), one for the Payment Service (triggers Stripe capture for Instant Book or authorization hold for request-to-book), one for the Calendar Sync Service (flips Redis bitmap bits and updates the Elasticsearch index), and one for the Analytics pipeline. SQS provides at-least-once delivery with dead-letter queues for failed events. For higher-throughput internal pipelines (availability index updates, Smart Pricing ML feature computation), Airbnb uses Kafka.',
+        insight:
+          'SNS/SQS fan-out decouples the booking transaction from downstream side effects. The Booking Service commits to the database and publishes one event — it does not call the Notification, Payment, or Calendar services directly. Each downstream service processes at its own pace with independent retry logic.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'Airbnb uses REST for its public-facing API (mobile apps, web) and GraphQL for the web frontend (airbnb.com) where components fetch only the fields they need — the listing card needs fewer fields than the detail page. GraphQL reduces over-fetching, which matters when a search returns 200 listings and the card only displays 6 fields. Listing images are served via Fastly CDN, geo-distributed to edge nodes in 60+ cities — a user in Tokyo fetches images from a Tokyo edge node, not a US data center. Fastly\'s image optimization pipeline (resizing, WebP conversion) runs at the edge. Load balancing uses geo-routing: DNS resolves airbnb.com to the nearest regional cluster (us-east, eu-west, ap-northeast), with health-check-based failover.',
+        insight:
+          'GraphQL solves the over-fetching problem for Airbnb\'s complex listing data model — a search card, detail page, booking modal, and host dashboard all need different subsets of the same listing object. One flexible schema replaces four separate REST endpoints.',
+      },
     ],
     decisions: [
       {
@@ -315,6 +397,24 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
         reason:
           'Instant Book (skip host approval) requires the Booking Service to immediately confirm and charge. Request-to-book requires a 24-hour host acceptance window with payment authorization (not capture) held on card. Both paths share the same double-booking prevention — the difference is when Stripe capture happens (immediate vs after host accept).',
       },
+      {
+        question: 'AP vs CP for search (CAP choice)',
+        chosen: 'AP — Available + Partition Tolerant for search; CP for booking transaction',
+        reason:
+          'Search reads tolerate eventual consistency — a listing appearing available in search but found booked at checkout is a recoverable UX issue. Elasticsearch is AP: during a partition it serves potentially stale data rather than returning errors. Booking is CP: Redis Redlock + PostgreSQL EXCLUDE enforce strong consistency. This hybrid approach maximizes search throughput (500M searches/day served from ES) while guaranteeing booking correctness (zero double-bookings).',
+      },
+      {
+        question: 'SNS/SQS vs Kafka for booking event delivery',
+        chosen: 'SNS/SQS for fan-out notifications; Kafka for high-throughput internal pipelines',
+        reason:
+          'Booking events need to reach 4+ downstream services (notifications, payment, calendar sync, analytics). SNS fan-out to SQS queues is operationally simple, provides per-consumer retry and dead-letter queues, and scales to thousands of messages/sec — well within 3.2 bookings/sec. For high-throughput internal pipelines (availability updates, ML feature pipelines at millions of events/day), Kafka\'s log-based partitioned model is more efficient and supports consumer group replay.',
+      },
+      {
+        question: 'REST vs GraphQL for the web frontend',
+        chosen: 'GraphQL for web, REST for mobile API',
+        reason:
+          'The web frontend has many components (search card, detail page, booking modal, host dashboard) each needing different subsets of listing data. GraphQL lets each component declare its own data requirements — no over-fetching. Mobile apps use REST because REST is simpler for mobile clients and the response shapes are more predictable (fewer UI variants than web). GraphQL\'s single endpoint also simplifies CDN caching strategy for the API layer.',
+      },
     ],
     interview: [
       {
@@ -332,6 +432,14 @@ export const REALWORLD_INFRA: RealWorldSystem[] = [
       {
         q: 'How do you ensure the price a guest sees is the price they pay, even if the host changes it mid-session?',
         a: "When the guest opens the checkout page, the Pricing Service computes the total price and stores it in a Redis session key (keyed by session_id + listing_id + date_range) with a 30-minute TTL. The Booking Service reads price from the session key, not from the live pricing table. If the session key has expired (guest left and came back 31 minutes later), price is recomputed from current host settings. price_at_booking is also stored on the booking record for dispute resolution. Hosts can change prices freely — in-flight checkout sessions are protected.",
+      },
+      {
+        q: 'Why does Airbnb use Elasticsearch for search instead of PostgreSQL or a dedicated search DB?',
+        a: "Airbnb's listing search has three requirements that PostgreSQL cannot serve efficiently at scale: (1) geo-distance queries with ranking — finding listings within 5km of a lat/lng and ranking by proximity combined with relevance; (2) multi-field full-text search across title, description, and amenities with TF-IDF relevance scoring; (3) faceted aggregations — returning counts like '342 listings with a pool' across 7M documents in real time. ES natively handles all three with geo_point fields, multi-match queries, and aggregation pipelines. At 500M searches/day, ES's horizontal sharding distributes query load across many nodes. The trade-off is eventual consistency — new listings and availability updates appear in ES within ~5 seconds — which is acceptable for search but not for booking.",
+      },
+      {
+        q: 'How does Airbnb handle the CAP theorem trade-off between search availability and booking consistency?',
+        a: "Airbnb applies CAP trade-offs per operation type. Search is AP: Elasticsearch is available during partitions, serving potentially stale listing data — a listing showing as available in search but found booked at checkout is a recoverable error (guest sees 'dates unavailable, try these alternatives'). This keeps search fast and always-on for 500M daily searches. Booking is CP: the actual reservation uses Redis Redlock (pessimistic distributed lock) + PostgreSQL EXCLUDE constraint. During a partition, new bookings fail rather than risk double-booking. The guest gets an error and can retry — far better than two guests arriving at the same property. Optimistic locking (version column compare-and-swap) handles host calendar edits where conflicts are rare.",
       },
     ],
     keyInsight:

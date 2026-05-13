@@ -126,7 +126,35 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
       {
         title: 'Payouts — moving real money at T+2',
         description:
-          "After a merchant processes payments, Stripe aggregates their balance and initiates a payout via ACH (US) or SEPA (EU) at T+2. The payout system calculates net (charges - refunds - fees) per merchant per day, creates ACH debit instructions, and submits via ODFI (Originating Depository Financial Institution) connections. ACH has no real-time confirmation — Stripe shows payouts as \"In Transit\" until the bank confirms (2 business days). Failed ACH returns (insufficient funds, account closed) create negative balance entries that must be recovered. Stripe's treasury risk system monitors merchant account health to minimize unrecoverable losses.",
+          "After a merchant processes payments, Stripe aggregates their balance and initiates a payout via ACH (US) or SEPA (EU) at T+2. The payout system calculates net (charges - refunds - fees) per merchant per day, creates ACH debit instructions, and submits via ODFI (Originating Depository Financial Institution) connections. ACH has no real-time confirmation — Stripe shows payouts as 'In Transit' until the bank confirms (2 business days). Failed ACH returns (insufficient funds, account closed) create negative balance entries that must be recovered. Stripe's treasury risk system monitors merchant account health to minimize unrecoverable losses.",
+      },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          "Stripe explicitly chooses CP (Consistency + Partition Tolerance) over AP. When a network partition occurs, Stripe prefers to become temporarily unavailable rather than risk incorrect billing. A customer must never be charged twice; a charge must never be silently lost. Synchronous cross-region replication enforces this: a write is not acknowledged until it is durable in at least two regions. If replication is partitioned, writes are blocked (unavailability) rather than proceeding with a potentially inconsistent state. This is the right trade-off for payments — a merchant experiencing 10 seconds of 503 errors is recoverable; a merchant who double-charged 1,000 customers is a legal and trust catastrophe.",
+        insight:
+          "In financial systems, the CAP choice is not a trade-off to optimize — it is a business requirement. Incorrect billing cannot be tolerated; brief unavailability always can. CP is non-negotiable for money movement.",
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          "Stripe uses MySQL (scaled horizontally via Vitess sharding) as its primary financial database. ACID transactions are non-negotiable for a double-entry ledger: every charge must atomically create a debit and credit entry — no partial writes allowed. MySQL's row-level locking and serializable isolation prevent balance inconsistencies. Vitess handles horizontal sharding transparently, partitioning by merchant_id so each shard handles a subset of merchants' data. Redis is used for idempotency key storage (TTL-based expiry, O(1) lookup) and for rate limiting counters — use cases where eventual consistency and speed matter more than ACID. NoSQL databases (DynamoDB, Cassandra) are deliberately avoided for financial records: their eventual consistency models are incompatible with double-entry accounting correctness requirements.",
+        insight:
+          "ACID is not a performance feature — it is a correctness guarantee. For financial ledgers, choosing NoSQL to gain throughput means giving up the consistency guarantees that make the ledger trustworthy. SQL with sharding is the correct approach.",
+      },
+      {
+        title: 'Message Broker & Event Streaming',
+        description:
+          "Stripe uses two message systems with distinct roles. SQS handles webhook delivery to merchant endpoints: at-least-once delivery semantics with exponential backoff retries (1m, 5m, 30m, 2h, 8h, 24h, 72h) match the webhook delivery contract — merchants must make their endpoints idempotent because Stripe may deliver the same event more than once. Kafka serves as the internal event log: every payment event (charge.created, charge.succeeded, refund.created) is written to Kafka. Downstream consumers (fraud scoring pipeline, email notification service, ledger update service, analytics) consume from Kafka independently. This fan-out architecture decouples the payment path from all downstream effects — a slow fraud analytics job never blocks a payment from completing.",
+        insight:
+          "Using two message systems is intentional: SQS for external delivery (simpler, managed retries) and Kafka for internal event sourcing (ordered, replayable log). Each tool matches its use case.",
+      },
+      {
+        title: 'Networking & Security Architecture',
+        description:
+          "Stripe applies defense-in-depth networking. All external traffic uses TLS 1.2+ with certificate pinning in official SDKs. Internal service-to-service communication uses mTLS (mutual TLS) — every service has a client certificate, preventing rogue internal services. Connections to Visa/Mastercard payment networks use dedicated private leased lines (not the public internet) — this eliminates internet latency variance and provides guaranteed bandwidth for authorization requests. Cloudflare provides edge-level rate limiting and DDoS protection before traffic reaches Stripe's origin infrastructure. PCI DSS network segmentation: cardholder data environment (CDE) lives in isolated network segments with strict firewall rules — the rest of Stripe's infrastructure cannot directly query CDE systems.",
+        insight:
+          "PCI DSS network segmentation is not just a compliance checkbox — it is the primary defense against lateral movement if any non-CDE service is compromised. Isolating cardholder data at the network layer limits the blast radius of any breach.",
       },
     ],
 
@@ -149,6 +177,24 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
         reason:
           "Third-party processors (like Authorize.net) add 300-500ms latency and an additional failure point. More importantly, they control the merchant relationship — Stripe's business model requires owning the full stack. Direct connections cost hundreds of millions in compliance and bank relationship investment but give Stripe control over latency, uptime, and pricing. At Stripe's scale, the per-transaction savings from removing the intermediary processor pays for the direct connection investment.",
       },
+      {
+        question: 'CP vs AP for payment writes during network partitions',
+        chosen: 'CP — block writes rather than risk inconsistency',
+        reason:
+          "During a network partition, allowing writes to proceed on both sides of the partition risks double-charging customers or losing charges entirely when partitions heal and conflicts must be resolved. There is no safe merge strategy for financial transactions — you cannot average two conflicting ledger states. Stripe accepts brief unavailability (503 errors) during partitions because merchants can retry; double-charges cannot be undone without destroying customer trust.",
+      },
+      {
+        question: 'MySQL with Vitess vs NoSQL for primary payment storage',
+        chosen: 'MySQL + Vitess horizontal sharding',
+        reason:
+          "ACID transactions are required for double-entry ledger correctness. MySQL provides serializable isolation and row-level locking. Vitess adds horizontal sharding by merchant_id, giving the throughput of a distributed system without sacrificing ACID semantics. NoSQL databases trade ACID for availability/throughput — an acceptable trade for social feeds or session state, but not for financial records where partial writes or stale reads cause real monetary losses.",
+      },
+      {
+        question: 'Where to store idempotency keys: Redis vs database',
+        chosen: 'Redis with TTL expiry',
+        reason:
+          "Idempotency key lookups must be sub-millisecond (they are on the critical path of every API call) and keys expire after 24 hours. Redis provides O(1) SET NX (set-if-not-exists) atomics — the exact primitive needed to implement 'store only if not seen before'. TTL-based expiry handles cleanup automatically. PostgreSQL could store idempotency keys but would add 5-10ms per lookup and require a separate cleanup job. Redis is the right tool for ephemeral, high-frequency key-value lookups.",
+      },
     ],
 
     interview: [
@@ -167,6 +213,14 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
       {
         q: 'How does Stripe deliver 5 billion webhooks per day reliably to merchant servers?',
         a: "Webhooks are decoupled from the payment path entirely. When a payment succeeds, an event is written to Kafka (durable, replicated log). The Webhook Delivery Service consumes from Kafka and attempts HTTPS POST to the merchant's endpoint. Delivery uses exponential backoff: retry at 1m, 5m, 30m, 2h, 8h, 24h, 72h. Each attempt is recorded in PostgreSQL with status/response. Merchants can replay webhooks from the Dashboard (pull model as fallback). Key design: the delivery service is completely separate from the payment processing path — a merchant's slow or failing server never adds latency to payment API calls. 5B/day = ~57K/sec avg; the Kafka-backed queue absorbs spikes and provides durability guarantees — a webhook is never lost even if the delivery service restarts.",
+      },
+      {
+        q: 'How does Stripe prevent double-charging a customer?',
+        a: "Three complementary mechanisms work together. First, the idempotency key layer in Redis: the API Gateway performs SET NX (api_key:idempotency_key) before any processing begins — if the key already exists, the cached response is returned immediately. The SET NX is atomic; concurrent retries cannot both succeed. Second, the Payment Intent state machine: a PaymentIntent in SUCCEEDED state rejects any further charge attempt at the application layer — the state transition is guarded by a database row lock. Third, the card network authorization: Stripe submits a single authorization request per PaymentIntent ID to the card network — the network deduplicates on this ID. All three layers must fail simultaneously for a double charge to occur, making it effectively impossible under normal operation.",
+      },
+      {
+        q: 'Why use a relational database (SQL) for payments instead of a NoSQL database?',
+        a: "Payments require double-entry accounting: every charge atomically creates a debit record (customer owes money) and a credit record (merchant gains balance) in the same transaction. If the write partially fails — debit recorded but credit missing — the ledger is corrupt. SQL ACID transactions guarantee all-or-nothing writes with serializable isolation. NoSQL databases (DynamoDB, Cassandra, MongoDB) trade ACID for availability and horizontal scale — their eventual consistency models allow reads of stale data and do not support multi-document atomic writes without significant complexity. For a financial ledger, the throughput gains of NoSQL are not worth the correctness risk. Stripe achieves horizontal scale through Vitess sharding of MySQL — getting distributed throughput while retaining ACID guarantees within each shard.",
       },
     ],
 
@@ -306,6 +360,34 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
         description:
           'On March 2-3, 2020, Robinhood went down for a full trading day during a historic market rally. Root cause: a DNS configuration issue cascading with database connection exhaustion during peak load. The outage revealed: (1) no graceful degradation — the entire app went down instead of degrading to read-only; (2) no circuit breakers between services — one failing service took down the entire backend; (3) insufficient load testing for extreme volatility scenarios. Post-outage: Robinhood implemented chaos engineering, added circuit breakers at every service boundary, built a read-only degraded mode (view portfolio but no trading), and paid $70M in settlements to affected customers.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          "Robinhood applies CAP differently depending on the data type. Trade execution and account positions choose CP strongly: executing a trade at the wrong price or executing the same order twice is a financial and regulatory disaster. Writes to position records use PostgreSQL transactions with serializable isolation — during a partition, the system returns an error rather than accepting an order that might execute inconsistently. Market data display (watchlist prices, quote tickers) chooses AP: if the latest AAPL price is 1 second stale, a user sees $189.23 instead of $189.31. This is acceptable — users understand quotes have inherent latency. The WebSocket fan-out service can serve slightly stale cached quotes during a partition rather than dropping the connection entirely. The boundary between CP and AP is the order submit button: everything before it (display) can be AP; everything after it (execution) must be CP.",
+        insight:
+          "CAP is not a single system-wide choice — it is a per-operation choice. Robinhood uses AP for read-heavy market data display (high availability matters more than freshness) and CP for write-heavy order execution (correctness matters more than availability).",
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          "Robinhood uses PostgreSQL for accounts, positions, and trade records — the financial source of truth. Foreign key constraints enforce referential integrity (a position must reference a valid account; a trade must reference a valid position). ACID transactions ensure that when a trade executes, the position update and trade record are written atomically. RocksDB (an embedded LSM-tree key-value store) serves the internal order book: it provides microsecond-level read latency for order lookups during the matching process, and its sequential write performance handles the burst of limit orders at market open. Kafka serves as the durable event streaming backbone: the trade execution pipeline (order received → risk check passed → routed to market maker → execution confirmed → position updated → notification sent) is modeled as a Kafka topic partitioned by symbol, ensuring all events for a given symbol are ordered and processed sequentially by downstream consumers.",
+        insight:
+          "Polyglot persistence — using different databases for different data access patterns — is the norm in trading systems. PostgreSQL for ACID correctness, RocksDB for low-latency key-value reads, Kafka for ordered event streaming.",
+      },
+      {
+        title: 'Message Broker & Event Streaming',
+        description:
+          "Robinhood's trade execution pipeline is modeled as a Kafka event stream. When a user submits an order, an order_created event is published to Kafka. The Risk Engine consumes this event, performs PDT/margin checks, and publishes order_risk_approved or order_risk_rejected. The Routing Service consumes order_risk_approved events and sends the order to market makers via FIX protocol. When execution confirmation returns, an order_executed event is published. The Position Update Service consumes order_executed events and updates PostgreSQL positions. The Notification Service consumes order_executed and pushes a confirmation to the user's device. The Kafka topic is partitioned by symbol — all events for AAPL go to the same partition, guaranteeing ordering of AAPL trades. This event-driven pipeline decouples each stage: if the notification service is slow, it does not delay position updates; if the analytics consumer is behind, it does not block execution.",
+        insight:
+          "Partitioning Kafka by trading symbol is critical for correctness: position updates for the same security must be applied in order. A buy followed by a sell must not be processed as sell-then-buy.",
+      },
+      {
+        title: 'Networking & Security Architecture',
+        description:
+          "Robinhood runs on AWS VPC with strict security group rules: each service tier (web, application, database) lives in a separate subnet with explicit ingress/egress rules. No service can communicate outside its defined trust boundary. FIX (Financial Information eXchange) protocol connects Robinhood to market makers and eventually to exchanges — FIX is the industry-standard low-latency binary protocol for order routing, chosen for its sub-millisecond parse overhead and universal exchange support. WebSocket connections from mobile clients use TLS 1.3 with session resumption to minimize reconnection overhead during brief network interruptions (common on mobile). Real-time price streaming to clients flows through a dedicated WebSocket gateway tier, isolated from the order submission path — a surge in users loading charts cannot consume resources from the order processing path.",
+        insight:
+          "Separating the read path (quote streaming) from the write path (order submission) at the network level prevents read traffic spikes from degrading order latency — a critical isolation boundary during volatile market events.",
+      },
     ],
 
     decisions: [
@@ -327,6 +409,24 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
         reason:
           "Building direct exchange connections (becoming a broker-dealer with direct market access) requires significant capital, exchange membership fees, and co-location infrastructure. PFOF monetizes the order flow while outsourcing execution to market makers who have this infrastructure. Trade-off: PFOF has been criticized for potential conflicts of interest (are market makers always giving best execution?). The SEC has scrutinized this model. Robinhood's business model depends on PFOF — this is the controversial but financially rational choice.",
       },
+      {
+        question: 'CP vs AP for trade execution vs market data display',
+        chosen: 'CP for execution; AP for display',
+        reason:
+          "A split CAP strategy matches the risk profile of each operation. Executing a trade at a stale price or executing it twice is a regulatory violation and financial loss — CP (block the operation during partitions). Displaying a price that is 1 second stale causes no harm — AP (serve cached data, stay available). This split is implemented at the system boundary: the order submission endpoint uses PostgreSQL with synchronous writes; the quote WebSocket feed can serve Redis-cached values during degraded conditions.",
+      },
+      {
+        question: 'PostgreSQL vs RocksDB vs Kafka for different data types',
+        chosen: 'Polyglot persistence: PostgreSQL + RocksDB + Kafka',
+        reason:
+          "No single database serves all access patterns. PostgreSQL handles financial records requiring ACID and SQL joins. RocksDB handles order book state requiring microsecond key-value lookups (sequential writes, random reads on hot keys). Kafka handles the trade execution pipeline requiring ordered, replayable, partitioned event streaming. Using one database for all three would mean compromising on correctness, latency, or ordering guarantees — the polyglot approach gives each subsystem the right tool.",
+      },
+      {
+        question: 'Synchronous vs event-driven trade execution pipeline',
+        chosen: 'Event-driven via Kafka topics partitioned by symbol',
+        reason:
+          "A synchronous pipeline (risk check → route → execute → update position → notify, all in a single request) creates a fragile chain where any slow step blocks the entire flow. If the notification service is slow (push notification delivery to Apple/Google APNs can be slow), it delays position updates. Kafka decouples each stage: each service processes its Kafka partition independently at its own pace. Partitioning by symbol ensures per-symbol ordering without global ordering overhead.",
+      },
     ],
 
     interview: [
@@ -345,6 +445,14 @@ export const REALWORLD_PAYMENTS: RealWorldSystem[] = [
       {
         q: 'How do you handle a market-wide circuit breaker that requires immediately halting all trading?',
         a: "A global circuit_breaker_active flag in Redis acts as the kill switch. Every order submission begins with GET circuit_breaker:{market}. This single Redis read adds < 1ms. When FINRA/SEC broadcasts a halt, Robinhood's market data service (which consumes the same SIP feed that carries halt notifications) calls SET circuit_breaker:US 1 EX 900 (15-minute TTL for Level 1 halts). All new orders instantly return TRADING_HALTED. A background sweep job queries all open orders and cancels them via the clearing system. On resume, the flag is cleared and the order book is reconstructed. The read-only degraded mode (implemented post-March 2020) allows users to view portfolios and quotes even if the order submission path is halted — preventing the worst user experience of a completely dark app.",
+      },
+      {
+        q: 'How does Robinhood handle the trade execution pipeline from order submission to position update?',
+        a: "The trade execution pipeline is modeled as a Kafka event stream partitioned by trading symbol. When a user submits an order, an order_created event is published to the AAPL partition (if buying AAPL). The Risk Engine consumes from this partition, performs synchronous PDT/margin checks against Redis-cached account state, and publishes order_risk_approved. The Routing Service consumes this, sends the order to the market maker via FIX protocol, and waits for execution confirmation (< 500ms). On confirmation, it publishes order_executed with price/shares/timestamp. The Position Update Service consumes order_executed, updates PostgreSQL positions in a transaction, and publishes position_updated. The Notification Service consumes order_executed and sends a push notification. Partitioning by symbol guarantees that all events for AAPL are processed in order — a buy cannot be processed after a sell that came before it.",
+      },
+      {
+        q: 'Why does Robinhood use a relational database for accounts and positions rather than a NoSQL database?',
+        a: "Account and position data has strict relational integrity requirements. A position must reference a valid account (foreign key). A trade must reference a valid position. When an order executes, three things must happen atomically in a single transaction: (1) deduct buying power from the account, (2) create the position record (or update shares), (3) create the trade record. If any step fails, all must roll back. NoSQL databases do not support multi-document ACID transactions without application-level complexity that reintroduces all the failure modes SQL prevents. PostgreSQL provides the ACID guarantees, foreign key constraints, and SQL queryability needed for regulatory reporting (every trade must be queryable for FINRA audits). Redis is used for caching account state for the hot path (risk checks) — it is a cache layer on top of PostgreSQL, not a replacement.",
       },
     ],
 

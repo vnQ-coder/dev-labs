@@ -89,6 +89,30 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
         description:
           'Standard HLS has 20–30 seconds of glass-to-glass latency due to segment duration (6–10s) and buffering. JioHotstar\'s premium path uses Low-Latency HLS (LL-HLS / CMAF Chunked): 2-second segments subdivided into 200ms partial segments, delivered via HTTP/2 server push with blocking playlist requests. This brings glass-to-glass latency to 6–8 seconds. LL-HLS requires CDN support for HTTP/2 push and partial segment delivery — not all edge nodes support it. It is therefore only enabled for 4G+ mobile and broadband users. 2G/3G users receive standard HLS with larger segments for stability over latency.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'JioHotstar deliberately chooses AP (Availability + Partition Tolerance) over CP for both video delivery and live data. For video: CDN edge nodes serve stale HLS segments during origin failures — a viewer may see a 4-second-old segment rather than the absolute latest, but the stream never stops. For live scores: a score update arriving 1 second late is entirely acceptable; the score WebSocket service uses Redis Pub/Sub with best-effort delivery and makes no consistency guarantees across regions. Partition tolerance is essential — during India vs Pakistan, Indian ISPs experience significant packet loss at international peering points; the system must continue operating in degraded network conditions. The only subsystem that approaches CP is DRM license verification: a viewer must present a valid Widevine/FairPlay token before receiving decryption keys — eventual consistency is not acceptable for rights enforcement.',
+        insight: 'For 99% of the system, AP is the right choice. The 1% that needs CP (rights enforcement, billing) is isolated into separate services so it cannot affect video availability.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'JioHotstar uses a polyglot persistence strategy matched to each data domain. Object storage (S3-compatible): HLS and CMAF segments are stored as raw binary objects — not in any database. S3 is append-only for live segments and provides infinite horizontal scale with no schema overhead. DynamoDB: user watch history, preferences, language settings, and bookmarks live in DynamoDB. These access patterns are simple key lookups (user_id) with no complex joins, and the data model is flexible enough to accommodate schema evolution without migrations. Aurora MySQL: subscription records, billing history, and plan entitlements require ACID guarantees — a user must not lose their subscription record due to a partial write. Aurora provides multi-AZ replication with automatic failover in under 30 seconds. ElastiCache (Redis): session tokens, live score state, and manifest cache entries are stored in Redis for sub-millisecond reads.',
+        insight: 'Choosing the right database per domain — not defaulting to one database for everything — is what allows each subsystem to scale independently.',
+      },
+      {
+        title: 'Message Broker & Stream Pipeline',
+        description:
+          'Kafka is the central nervous system of JioHotstar\'s live pipeline. Three primary Kafka use cases: (1) Encoder output events — each time an encoder completes a 2-second HLS segment, it publishes an event to a Kafka topic partitioned by rendition ID. Downstream consumers (manifest updater, CDN prefetch trigger, VOD writer) all consume independently with their own offsets. (2) Transcoding pipeline coordination — the encoding cluster uses Kafka to distribute transcode jobs across workers; each worker claims a job by consuming from a partition, ensuring exactly-once assignment via Kafka consumer groups. (3) CDN prefetch fan-out — a CDN warming consumer reads encoder events and issues prefetch requests to JioCDN edge nodes before viewers request the segment, reducing origin load by 70%. Chat events use a separate Kafka cluster (partitioned by match ID) to isolate chat throughput from video pipeline throughput.',
+        insight: 'Using Kafka as the backbone decouples producers (encoders) from consumers (CDN, VOD, chat), enabling each component to scale and fail independently.',
+      },
+      {
+        title: 'Networking, CDN & Delivery Protocol',
+        description:
+          'JioHotstar\'s delivery stack is optimised for India\'s heterogeneous network landscape. CDN: primary delivery is via JioCDN (1,400+ PoPs on Reliance\'s private fiber) for Jio subscribers, with Akamai as the secondary CDN for non-Jio broadband users. Protocol: HLS over HTTPS is the default — universal client support across iOS, Android, Smart TVs, and set-top boxes. CMAF (Common Media Application Format) enables LL-HLS on supported devices. For mobile clients on 4G+, the app negotiates QUIC/HTTP3 transport, which eliminates head-of-line blocking and performs better under packet loss than TCP-based HTTP/2. ABR: 2-second segments with 200ms partial chunks for LL-HLS; the ABR ladder spans 144p (100 Kbps) to 4K HDR (20 Mbps) to cover India\'s full range of network conditions from rural 2G to fiber broadband.',
+        insight: 'QUIC/HTTP3 provides meaningful latency improvements on Indian mobile networks where packet loss of 2–5% is common, because it eliminates TCP\'s retransmission head-of-line blocking.',
+      },
     ],
 
     decisions: [
@@ -110,6 +134,24 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
         reason:
           'Cricket stadiums have unreliable uplinks — high packet loss on congested event-day WiFi and cellular. SRT uses ARQ (automatic repeat request) to recover lost packets at the transport layer, maintaining clean video at up to 10% packet loss. RTMP has no error correction — a 2% packet loss results in a 2% corrupted stream with visible artifacts. SRT also adds AES-256 encryption, which is required for broadcast rights compliance.',
       },
+      {
+        question: 'AP vs CP — what does the CAP trade-off look like for video delivery?',
+        chosen: 'AP (Availability + Partition Tolerance) for video and scores; CP only for DRM/billing',
+        reason:
+          'During a major match, 50M viewers must keep watching even if a regional data centre loses connectivity. A slightly stale HLS segment or a 1-second-delayed score update is tolerable. Refusing to serve video because a consistency check failed is not. DRM token validation and billing are carved out as separate CP services that can block individual requests without affecting overall stream availability.',
+      },
+      {
+        question: 'HLS vs DASH as the primary adaptive streaming format?',
+        chosen: 'HLS (with CMAF for LL-HLS), DASH as fallback for Smart TVs',
+        reason:
+          'iOS (AVPlayer) requires HLS natively and cannot play DASH without a third-party player. Android and web can handle both. Given that 60%+ of JioHotstar\'s viewers are on iOS and Android using the native app, HLS is the universal baseline. CMAF enables a single segment format (fMP4) usable in both HLS and DASH playlists, reducing CDN storage duplication.',
+      },
+      {
+        question: 'QUIC/HTTP3 vs HTTP/2 for mobile segment delivery?',
+        chosen: 'QUIC/HTTP3 for 4G+ mobile; HTTP/2 for broadband; HTTP/1.1 as fallback',
+        reason:
+          'Indian mobile networks exhibit 2–5% packet loss regularly. Over TCP (HTTP/2), a single lost packet stalls all concurrent HLS segment downloads due to head-of-line blocking. QUIC multiplexes streams over UDP, so a lost packet for one segment does not block another. In A/B tests on 4G networks with simulated packet loss, QUIC reduced buffering events by 40%.',
+      },
     ],
 
     interview: [
@@ -128,6 +170,14 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
       {
         q: 'How do you detect and handle a CDN node going down mid-match without viewers noticing?',
         a: 'Continuous synthetic probing: every 10 seconds, probe each CDN PoP from multiple vantage points for TTFB, error rate, and segment freshness. Score each CDN; if a PoP scores below threshold for two consecutive probe cycles (20 seconds), its DNS weight is set to zero — new viewers stop routing to it. Existing viewers on that PoP: their players will experience a segment fetch failure, trigger HLS error recovery (retry + failover URL in the manifest), and land on a healthy CDN within 2–3 segment durations (4–6 seconds). Pre-populate failover CDN URLs in every manifest so clients can switch without a DNS lookup.',
+      },
+      {
+        q: 'How did JioHotstar serve 50M concurrent viewers during IPL?',
+        a: 'Three interlocking strategies: (1) JioCDN advantage — 80% of viewers are Jio subscribers; routing them to JioCDN keeps traffic on Reliance\'s private fiber, bypassing ISP peering bottlenecks entirely. 125 Tbps of peak bandwidth becomes a cost and capacity problem, not a reliability problem, when you own the last mile. (2) Pre-warming — the 15-minute countdown stream spread connection load over time; CDN edges were pre-seeded with the first 30 segments before any viewer clicked play. (3) Stateless HLS delivery — each 2-second segment is an independent HTTP GET with no server-side session state; CDN scales horizontally with zero coordination. The combination of private CDN + pre-warming + stateless delivery is what makes 50M concurrent viewers achievable.',
+      },
+      {
+        q: 'HLS vs DASH vs WebRTC — what are the trade-offs and when do you use each?',
+        a: 'HLS: universal client support (required for iOS), 6–20s latency depending on segment size, stateless CDN delivery scales to 50M+ viewers trivially. Best choice when compatibility and scale matter more than latency. DASH: better codec flexibility (AV1, HEVC) and segment alignment with DRM standards, similar latency to HLS; preferred for Smart TVs and Android where iOS compatibility is not a constraint. WebRTC: sub-1-second latency using RTP over UDP, ideal for interactive scenarios (two-way communication, IRL streaming). Critical limitation: WebRTC requires stateful TURN servers for NAT traversal; scaling to 1M WebRTC viewers would need ~10,000 TURN server cores — cost-prohibitive. Use WebRTC only where sub-1s latency has real product value (e.g., streamer monitoring their own feed, interactive polls). For mass delivery, HLS wins on cost and scale every time.',
       },
     ],
 
@@ -218,7 +268,31 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
       {
         title: 'Distributed VOD Assembly',
         description:
-          'During a live stream, 2-second HLS segments are written to S3 with keys structured as `{channel_id}/{stream_id}/{segment_seq}.ts`. S3\'s eventual consistency model means segments may be listed out of order; the assembly job uses the segment sequence number in the key (not S3 list order) to build the correct M3U8 playlist. For a 12-hour stream: 12 × 3600 / 2 = 21,600 segments. The assembly job is O(n) — it sorts segment keys and writes the playlist. At Twitch\'s scale, this completes within 15 minutes. Thumbnails are generated by extracting a keyframe from the first segment using FFmpeg and uploading to a CDN-backed image service.',
+          'During a live stream, 2-second HLS segments are written to S3 with keys structured as \'{channel_id}/{stream_id}/{segment_seq}.ts\'. S3\'s eventual consistency model means segments may be listed out of order; the assembly job uses the segment sequence number in the key (not S3 list order) to build the correct M3U8 playlist. For a 12-hour stream: 12 × 3600 / 2 = 21,600 segments. The assembly job is O(n) — it sorts segment keys and writes the playlist. At Twitch\'s scale, this completes within 15 minutes. Thumbnails are generated by extracting a keyframe from the first segment using FFmpeg and uploading to a CDN-backed image service.',
+      },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Twitch chooses AP (Availability + Partition Tolerance) for stream delivery: HLS segments are served from CDN edge caches even if the Twitch origin is temporarily unreachable — viewers continue watching stale-but-valid segments during origin failures. The ingest pipeline is also AP: RTMP ingest accepts the streamer\'s data even if downstream services (chat moderation, analytics) are degraded; the stream must never be dropped due to a non-critical subsystem failure. However, Twitch enforces CP for streamer authentication and stream key validation: before a stream goes live, the ingest server must verify the stream key against the auth service. This check is synchronous and blocking — an incorrect stream key must be rejected, not allowed through. This is the one place where consistency trumps availability, because allowing an unauthorised stream is a security and rights violation.',
+        insight: 'Separating the CP auth check (happens once at stream start) from the AP delivery pipeline (happens continuously for hours) means the strict consistency requirement has near-zero impact on overall system availability.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Twitch uses MySQL (Aurora) as its primary relational store for channel metadata, user accounts, subscription records, and bits transactions — all data with relational structure requiring ACID guarantees. Channel follower counts, subscription states, and payment records must be consistent; double-charging a subscriber or losing a follow record is unacceptable. DynamoDB is used for stream metadata: active stream state (is the channel live? what is the current viewer count? what is the segment sequence number?). These reads are on the hot path — the discovery page and directory must refresh in under 50ms. DynamoDB provides single-digit millisecond reads at any scale with no query planning overhead. HBase is used for long-term chat history storage: chat messages are append-only, high-write, and queried by channel + time range. HBase\'s LSM-tree storage engine is optimised for this exact pattern. S3 stores all HLS segments (live and VOD) as raw objects — no database overhead for binary media.',
+        insight: 'Using MySQL for relational integrity, DynamoDB for hot-path metadata, and HBase for high-write append-only history is a classic polyglot persistence pattern that matches each database\'s strengths to the access patterns of each domain.',
+      },
+      {
+        title: 'Message Broker & Stream Pipeline',
+        description:
+          'Kafka is the backbone of Twitch\'s ingest pipeline. The full flow: RTMP ingest server receives the streamer\'s video stream and publishes raw encoded frames as Kafka messages to a per-channel topic. Transcoder workers consume from the topic and produce HLS segments, publishing segment-complete events back to Kafka. HLS segmenters consume segment events, write the .ts file to S3, and update the M3U8 manifest. CDN prefetch workers consume segment events and issue warming requests to Akamai edge nodes ahead of viewer requests. Chat uses a separate Kafka cluster: each chat message is published to a per-channel Kafka topic, consumed by moderation workers (toxicity scoring, ban check), then published to the fan-out topic consumed by WebSocket gateway pods. Kafka\'s consumer group model ensures exactly-once segment processing (two transcoder workers cannot process the same frame) and provides durable buffering to absorb ingest spikes.',
+        insight: 'Kafka decouples the RTMP ingest rate from the transcoding rate — if transcoders slow down temporarily, Kafka buffers the backlog without dropping frames or stalling the streamer.',
+      },
+      {
+        title: 'Networking, CDN & Delivery Protocol',
+        description:
+          'Twitch\'s delivery network spans 50+ PoPs globally using Akamai as the primary CDN, supplemented by Twitch\'s own ingest edge network (Twitch Edge). Standard viewing mode uses HLS over HTTPS with 2-second segments — latency of 6–20 seconds depending on buffer configuration, but scales to millions of concurrent viewers with stateless CDN delivery. Low-Latency mode uses LL-HLS (CMAF chunked transfer): 2-second segments with 200ms partial chunks delivered via HTTP/2 blocking playlist requests, achieving 3–6 second glass-to-glass latency. Ultra-Low-Latency mode uses WebRTC (RTP over UDP via TURN): sub-1-second latency, but restricted to small channels due to TURN server cost. Twitch\'s ingest network is purpose-built: ingest PoPs are placed in cities with high streamer density (Los Angeles, New York, London, Seoul), and streamers connect via anycast DNS to the nearest PoP. RTMP over TCP is the universal ingest protocol for compatibility with OBS and all streaming software.',
+        insight: 'Twitch operates three distinct delivery modes (HLS, LL-HLS, WebRTC) because no single protocol satisfies all trade-offs: compatibility and scale favour HLS; low latency favours WebRTC; the middle ground is LL-HLS. Running all three in parallel is the only way to serve all viewer segments optimally.',
       },
     ],
 
@@ -241,6 +315,24 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
         reason:
           'At 100K concurrent channels, always-on dedicated workers would require 100K+ GPU cores running 24/7 — most of them idle during off-peak hours when only 20K channels are live. On-demand allocation with HPA means the GPU fleet scales with active channel count. Workers are pooled and shared across channels. The only overhead is the ~5-second allocation latency at stream start, which is invisible to viewers (the streamer sees a delay before their stream goes live).',
       },
+      {
+        question: 'AP vs CP for the streaming pipeline — where is consistency required?',
+        chosen: 'AP for stream delivery and chat; CP only for auth and stream key validation',
+        reason:
+          'Stream delivery must remain available even during partial outages — dropping a live stream because a metadata service is unreachable is unacceptable. Chat is explicitly lossy (AP). However, stream key authentication must be correct: allowing an unauthorised stream key would expose other streamers\' accounts and violate platform security. This is the one blocking synchronous check in an otherwise asynchronous pipeline.',
+      },
+      {
+        question: 'MySQL vs DynamoDB for stream metadata (live channel directory)?',
+        chosen: 'DynamoDB for live stream state; MySQL for user accounts and subscriptions',
+        reason:
+          'The live directory page reads stream metadata (is the channel live? viewer count? game category?) on every page load for millions of users simultaneously. MySQL query planning overhead and connection pool limits make it unsuitable for this hot-path read pattern. DynamoDB provides single-digit millisecond reads with automatic horizontal scaling at zero operational overhead. User account and subscription data requires ACID transactions (sub payments, channel transfers) where DynamoDB\'s eventual consistency model is a liability.',
+      },
+      {
+        question: 'RTMP vs SRT vs WebRTC for streamer ingest protocol?',
+        chosen: 'RTMP as the universal default; SRT as an experimental alternative',
+        reason:
+          'OBS (the dominant streaming software) has native RTMP support — requiring SRT or WebRTC would break compatibility with 95% of streamers. RTMP over TCP provides reliable ordered delivery on broadband connections where streamers are located. Unlike stadiums (JioHotstar\'s use case), home internet connections have low packet loss — RTMP\'s lack of error correction is not a practical problem. SRT is offered as an opt-in for professional streamers with broadcast-grade equipment.',
+      },
     ],
 
     interview: [
@@ -259,6 +351,14 @@ export const REALWORLD_STREAMING: RealWorldSystem[] = [
       {
         q: 'How does Twitch handle a sudden spike when a viral moment brings 1M new viewers to one channel?',
         a: 'Ingest is unaffected — the streamer\'s upload to the ingest PoP is a single RTMP connection; viewer count has zero impact on it. Transcoding is pre-allocated at stream start — already running. The spike only affects CDN delivery and WebSocket (chat). CDN handles viewer spikes natively — HLS is stateless, each segment request is independent, and CDN scales horizontally by adding capacity. The only bottleneck is the origin (segment source); Twitch mitigates this by pushing segments to CDN edges proactively (origin shield pattern). For chat: autoscaling triggers additional WebSocket pods and PubSub fan-out capacity. The 60-second autoscaling lag means the first minute of a viral spike may see elevated chat latency — acceptable.',
+      },
+      {
+        q: 'How does Twitch achieve low-latency streaming, and what are the trade-offs at different latency tiers?',
+        a: 'Twitch operates three latency modes, each with distinct architecture and trade-offs. Normal mode (6–20s): standard HLS with 2-second segments buffered 3 segments deep. Fully cacheable on CDN, scales to millions of viewers, zero TURN server cost. Best for passive watching where latency does not matter. Low-Latency mode (3–6s): LL-HLS with 200ms partial chunks delivered via HTTP/2 blocking playlist requests. CDN must support partial segment delivery — not all edges do. Viewer count is still unlimited because delivery remains stateless HTTP. This is Twitch\'s default for most viewers today. Ultra-Low-Latency mode (<1s): WebRTC RTP over UDP via TURN servers. Each viewer requires a stateful TURN connection (~1 core per 1,000 viewers). At 1M viewers this costs ~1,000 cores for TURN alone — economically viable only for small channels. The key insight: for 99% of viewers, LL-HLS at 3–6s is the optimal trade-off between latency and cost.',
+      },
+      {
+        q: 'HLS vs DASH vs WebRTC trade-offs — when would you choose each for a streaming platform?',
+        a: 'HLS: native iOS support (non-negotiable for consumer apps), universal browser support via hls.js, stateless CDN delivery scales to tens of millions of viewers. Latency floor is ~6s even with LL-HLS. Best for: mass-market consumer streaming (Twitch, JioHotstar, Netflix live). DASH: better codec and DRM standard alignment (MPEG-DASH + CENC), no native iOS support (requires MSE), similar latency to HLS. Best for: Smart TVs, CTV platforms, enterprise video where iOS is not primary. WebRTC: sub-1-second latency using RTP/UDP, true real-time interactivity (video calls, remote desktop). Requires stateful TURN/STUN infrastructure — cost scales linearly with viewer count. Best for: small-audience interactive streams, two-way communication, IRL streams where streamer reacts to chat in real time. At scale, the answer is always HLS or LL-HLS. WebRTC at 1M+ viewers is not economically viable with current infrastructure costs.',
       },
     ],
 

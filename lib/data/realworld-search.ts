@@ -88,6 +88,34 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
         insight:
           "Google's network is the performance enabler. The reason 1,000 machines can collaborate on one query in < 200ms is because intra-DC network latency is 10 microseconds — not 10 milliseconds.",
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Google Search is an AP system — it favors Availability and Partition Tolerance over strict Consistency. A crawled page from yesterday appearing in results today is perfectly acceptable; users never notice. If a data center is partitioned, Google continues serving results from the local index replica rather than refusing queries. Index replicas across regions may be slightly out of sync — one region might have a newer crawl of a page than another. This staleness is the deliberate trade-off. The only place Google enforces strong consistency is in Spanner, used for ads and billing — where a double-charge or missed revenue event is unacceptable.',
+        insight:
+          'Choosing AP for the index means Google can serve every query even under network partitions or partial data center failures. The user sees a result that is a few hours old instead of seeing an error. Availability wins over real-time consistency for search.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Google uses Bigtable (NoSQL wide-column store) for the web index — key is a URL hash, value is the full page data, posting list entries, and metadata. Bigtable scales horizontally to petabytes with no schema constraints, perfect for heterogeneous web pages. For ads and billing, Google uses Spanner — a NewSQL database providing globally distributed ACID transactions with external consistency. Spanner uses TrueTime (GPS + atomic clocks) to order transactions globally, enabling serializable reads and writes across continents. The rule: unstructured, write-heavy, enormous scale → Bigtable (NoSQL); financial correctness, global transactions → Spanner (NewSQL).',
+        insight:
+          'Bigtable and Spanner solve different problems. Bigtable trades schema flexibility for scale; Spanner trades simplicity for global ACID correctness. Using both in one system is the right answer when requirements diverge.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Google uses Cloud Pub/Sub as the backbone of its crawl pipeline. When Googlebot fetches a page, it publishes a crawl event to a Pub/Sub topic. Multiple downstream subscribers — the indexer, the PageRank updater, the spam detector, the freshness scorer — each receive a copy and process independently. This fan-out pattern decouples the crawler from all downstream systems. A slow indexer does not block the crawler; messages are durably queued. The crawl queue itself is managed via Pub/Sub, allowing millions of URL-fetch events per second to be distributed across crawler worker fleets without a central coordinator.',
+        insight:
+          'Pub/Sub turns the crawler pipeline from a tight sequential chain into a loosely coupled event-driven system. Each stage scales independently. Adding a new consumer (e.g., a malware detector) requires zero changes to the crawler — just subscribe to the topic.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Google uses Anycast routing so that every user query is automatically directed to the nearest data center — no per-user routing logic required. The same IP address is announced from dozens of locations; BGP routing picks the shortest path. On top of this, Google developed QUIC (now an IETF standard) to replace TCP for web traffic — QUIC eliminates the TCP three-way handshake and TLS round-trips, reducing connection setup from 3 RTTs to 0 RTTs for repeat connections. Globally, Google operates a private backbone network (B4) connecting its data centers with multi-terabit capacity, bypassing the public internet for inter-DC traffic.',
+        insight:
+          'Anycast means Google does not need geo-DNS lookup tables to route users — the network infrastructure does it automatically. QUIC means mobile users on high-latency connections see dramatically faster search results because connection overhead is eliminated.',
+      },
     ],
     decisions: [
       {
@@ -108,6 +136,24 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
         reason:
           'Sharding by document lets each shard score all terms for its documents independently. Sharding by term lets each shard return posting lists for one query term independently. Google uses both: TermIndex shards for posting list retrieval, DocIndex shards for document metadata. This two-level sharding allows independent scaling of retrieval (term lookup) vs. serving (snippet generation).',
       },
+      {
+        question: 'AP vs CP for the web index under network partition',
+        chosen: 'AP — serve stale index rather than refuse queries',
+        reason:
+          'A user seeing a result that is a few hours old is vastly better than seeing an error page. Google replicates the index across regions; under a partition, each region serves its local replica. Index staleness of hours is undetectable by users. The only exception is the real-time index for breaking news, which uses stronger synchronization — but even there, a stale result beats an outage.',
+      },
+      {
+        question: 'NoSQL (Bigtable) vs NewSQL (Spanner) for different workloads',
+        chosen: 'Bigtable for index storage, Spanner for ads/billing',
+        reason:
+          'The web index is write-heavy, schema-free, and too large for relational constraints — Bigtable handles petabytes horizontally. Ads and billing require globally consistent ACID transactions (a click must be charged exactly once, globally) — Spanner provides this with TrueTime. The key insight is that not all data in one system needs the same database; pick the right store for each access pattern.',
+      },
+      {
+        question: 'Pub/Sub event architecture vs direct RPC calls between crawler and indexer',
+        chosen: 'Pub/Sub fan-out for the crawl pipeline',
+        reason:
+          'Direct RPC couples the crawler to every downstream consumer. If the indexer is slow or offline, the crawler blocks. Pub/Sub queues messages durably — the crawler publishes and moves on; the indexer processes at its own pace. Fan-out allows multiple independent consumers (indexer, spam detector, freshness scorer) without any crawler changes. The trade-off is eventual processing vs. synchronous confirmation, which is acceptable for indexing.',
+      },
     ],
     interview: [
       {
@@ -120,11 +166,19 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
       },
       {
         q: 'How does Google keep its index fresh for breaking news?',
-        a: 'Google runs two indexes in parallel: a large main index (100B pages, updated over days/weeks) and a small real-time index (~1B pages, updated in minutes). When Googlebot detects a changed page via HTTP Last-Modified or sitemap ping, it enters the fast Caffeine pipeline → real-time index. Queries hit both indexes and results are merged. The real-time index covers only ~1% of the web but contains the most time-sensitive content.',
+        a: 'Google runs two indexes in parallel: a large main index (100B pages, updated over days/weeks) and a small real-time index (~1B pages, updated in minutes). When Googlebot detects a changed page via HTTP Last-Modified or sitemap ping, it enters the fast Caffeine pipeline and is pushed to the real-time index. Queries hit both indexes and results are merged. The real-time index covers only ~1% of the web but contains the most time-sensitive content. This dual-index design means freshness does not require rebuilding the entire 1 PB main index.',
       },
       {
         q: 'How does autocomplete work at Google Search\'s scale?',
         a: 'Completions are precomputed offline: MapReduce over anonymized query logs counts prefix frequencies. Top completions per prefix are stored in a compressed trie (~50 GB RAM) on autocomplete servers replicated at every edge PoP. Each keystroke hits the nearest PoP via Anycast, does an O(prefix length) trie lookup, returns top 10 completions in < 20ms. Personalization re-ranks based on user history at serve time.',
+      },
+      {
+        q: 'Is Google Search CP or AP — and why?',
+        a: "Google Search is AP. Under a network partition, Google serves results from the local index replica rather than refusing queries. Index replicas across regions may differ by hours — a page crawled in one region may not yet appear in another. This staleness is acceptable because users cannot detect a result that is a few hours old. The only CP component is Spanner for ads and billing, where a double-charge is unacceptable. For search itself, availability always beats consistency.",
+      },
+      {
+        q: 'Why does Google use Bigtable for the web index instead of a relational database?',
+        a: 'The web index is petabyte-scale, schema-free (every web page has different structure), and write-heavy (billions of pages re-crawled continuously). Relational databases cannot scale horizontally to petabytes without massive sharding complexity, and enforcing a schema on heterogeneous web content is impractical. Bigtable stores key-value pairs where the key is a URL hash and the value is arbitrary page data — no schema, infinite horizontal scale, and optimized for the large sequential reads that the query engine performs when fetching posting lists.',
       },
     ],
     keyInsight:
@@ -215,6 +269,34 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
         description:
           "Amazon's peak is 40× their daily average. Pre-Black Friday preparation: (1) load tests at 200% of expected peak; (2) pre-warm Auto Scaling groups to 3× normal capacity; (3) increase DynamoDB provisioned capacity 10× on inventory tables; (4) pre-position popular items closer to high-demand zip codes; (5) circuit breakers on all third-party integrations (shipping APIs, payment processors) with local fallbacks. During peak: shed non-critical features (recommendations, reviews loading) to free capacity for the checkout path. Amazon's GameDay program runs fake Black Friday events quarterly to find capacity and failure mode surprises before the real thing.",
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Amazon applies CAP differently to different parts of the platform. Inventory and orders are CP — the system must not oversell, so Amazon enforces ACID transactions at checkout. If a network partition prevents confirming inventory, the checkout fails rather than risking an oversell. Cart and product catalog are AP — if a partition occurs, users can still browse and add to cart with potentially stale prices (seconds old). A product showing last night\'s price for a few seconds is acceptable; selling an item that does not exist in stock is not. This mixed CP/AP architecture is deliberate: enforce strong consistency only where the cost of inconsistency (oversell, double-charge) exceeds the cost of unavailability (failed checkout).',
+        insight:
+          'One system can be both CP and AP for different data types. The key is identifying which data\'s inconsistency is catastrophic (inventory: oversell → CP) vs. merely annoying (catalog price: stale by seconds → AP).',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Amazon uses DynamoDB (NoSQL key-value) for cart and sessions: the access pattern is always "get cart by user_id" — a single-key lookup that DynamoDB serves in single-digit milliseconds at any scale. No joins needed. Cart data is schema-flexible (variable item counts). Aurora MySQL (SQL) is used for orders and payments: orders require ACID transactions (charge payment AND create order record atomically), relational joins (order → items → shipments), and audit trails with strong consistency. Elasticsearch powers product search — inverted index over 362M SKUs with faceted filtering. S3 stores product images and acts as a data lake for analytics. The rule: key-value, high-throughput, schema-flexible → DynamoDB; transactional, relational, audit → Aurora SQL.',
+        insight:
+          'Amazon uses four different storage systems in one checkout flow. Each is chosen for its access pattern, not convention. DynamoDB for speed, Aurora for correctness, Elasticsearch for search, S3 for blobs.',
+      },
+      {
+        title: 'Message Broker & Event Architecture',
+        description:
+          'Amazon uses SQS to decouple checkout from fulfillment: when an order is placed, a message is enqueued in SQS. The Warehouse Management System (WMS) consumes messages at its own pace — if a fulfillment center is temporarily slow, orders queue in SQS rather than blocking checkout. SNS handles fan-out notifications: one order event triggers email confirmation, SMS update, and seller notification simultaneously via SNS topic subscriptions. Kinesis ingests clickstream data (every product view, add-to-cart, search query) for real-time analytics and personalization model training. Kafka powers internal event streaming for order state machine transitions — each status change (PLACED → SHIPPED) is a Kafka event consumed by tracking, analytics, and seller dashboards.',
+        insight:
+          'SQS decouples rate — checkout runs at 5,000 orders/sec; fulfillment runs at warehouse capacity. SNS decouples fan-out — one event reaches many consumers without the publisher knowing who they are. Kinesis decouples analytics — clickstream processing never slows down the purchase flow.',
+      },
+      {
+        title: 'Networking & Global Distribution',
+        description:
+          'Amazon uses CloudFront CDN to serve all static assets (product images, JS bundles, CSS) from 450+ edge locations globally — a product image loads from a PoP 5ms away, not a US-East data center 200ms away. Route 53 uses latency-based routing to direct API requests to the AWS region with lowest measured latency for that customer. Amazon operates an active-active multi-region architecture for critical services: checkout runs simultaneously in us-east-1, us-west-2, and eu-west-1. If one region fails, Route 53 health checks detect it within 10 seconds and reroute traffic to a healthy region — no manual intervention. Regional failover without active-active would require cold-start time that costs millions per minute during a Black Friday outage.',
+        insight:
+          'Active-active multi-region means both regions are always serving traffic. Failover is instantaneous because the backup region is already warm. The cost is keeping data synchronized across regions — Amazon uses DynamoDB Global Tables for cart data, which replicates across regions in under 1 second.',
+      },
     ],
     decisions: [
       {
@@ -235,6 +317,24 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
         reason:
           'Amazon\'s 2002 "API Mandate" (Jeff Bezos\'s internal memo) required every team to expose their data via APIs and communicate only through those APIs. This forced decomposition: Cart Service, Inventory Service, Order Service, Pricing Service, etc., each independently deployable. This is what enabled AWS — teams building internal services discovered they could sell those services externally. The monolith was undeployable at Amazon\'s team size; microservices enabled independent velocity.',
       },
+      {
+        question: 'CP vs AP for inventory during network partition',
+        chosen: 'CP for inventory and orders — fail the checkout rather than oversell',
+        reason:
+          'An oversell means fulfilling an order for an item that does not exist — a guaranteed customer complaint, refund, and reputation hit. A failed checkout is recoverable (the customer retries or calls support). Amazon enforces strong consistency for inventory decrements even at the cost of occasional checkout failures during partitions. For the product catalog and cart, AP is chosen — stale prices by seconds or missing a recent cart update is far less harmful than an oversell.',
+      },
+      {
+        question: 'SQS vs direct RPC from checkout to fulfillment',
+        chosen: 'SQS queue between checkout and warehouse management system',
+        reason:
+          'If checkout called the WMS directly via RPC and WMS was slow or down, checkout would block — a checkout failure during Black Friday is catastrophic. SQS decouples the two: checkout writes a message and confirms the order immediately. WMS processes at its own rate. If WMS falls behind, messages queue in SQS (durable, no data loss). The customer gets an order confirmation; fulfillment catches up. The trade-off is that WMS processing is asynchronous — the order is confirmed before fulfillment starts, which is the right trade-off.',
+      },
+      {
+        question: 'CloudFront CDN vs origin-only serving for product images',
+        chosen: 'CloudFront CDN for all static assets',
+        reason:
+          'Product pages load 20-50 images per page. Without a CDN, every image request hits an S3 origin in a single AWS region — a user in Europe adds 150ms round-trip to every image. CloudFront serves images from 450+ edge locations, reducing image load latency to < 10ms globally. The cost savings are also significant: CDN cache hits do not incur S3 data transfer fees. For a site with 2B product searches/day, CDN offload reduces origin bandwidth by 95%+.',
+      },
     ],
     interview: [
       {
@@ -252,6 +352,14 @@ export const REALWORLD_SEARCH: RealWorldSystem[] = [
       {
         q: 'How does Amazon scale checkout to 300,000 orders per minute on Black Friday?',
         a: "Pre-warm + shed load + circuit break. Before Black Friday: pre-warm Auto Scaling to 3× normal capacity, provision DynamoDB at 10× for inventory tables, run GameDay load tests at 200% expected peak. During peak: shed non-critical features (recommendations, review loading) via feature flags to route all capacity to the checkout critical path. Circuit breakers on all external dependencies (payment processors, carrier APIs) with local fallbacks prevent a slow third party from cascading into checkout failure. The checkout SAGA pattern ensures that a failure at any step triggers compensating transactions (inventory un-reservation, payment refund) atomically.",
+      },
+      {
+        q: 'Why does Amazon use DynamoDB for carts but SQL (Aurora) for orders?',
+        a: "The access patterns and consistency requirements are completely different. Cart is always accessed by a single key (user_id → cart items) — a DynamoDB single-key lookup in single-digit milliseconds. Cart is schema-flexible (variable items), high-throughput (10K reads/sec), and eventual consistency is fine (a stale cart showing the wrong item count for a second is not harmful). Orders require ACID transactions (charge payment AND create order record must be atomic — partial failure means a charged but unconfirmed order), relational joins (order → line items → shipments → tracking), and a full audit trail for compliance. These requirements map exactly to a relational database with ACID guarantees. DynamoDB cannot do multi-item ACID transactions at this complexity level. Use the right tool: DynamoDB for speed and scale, Aurora SQL for correctness and relationships.",
+      },
+      {
+        q: 'How does Amazon handle flash sales (e.g., 1 million people competing for 1,000 units) without overselling?',
+        a: "For extreme contention scenarios, DynamoDB conditional writes are insufficient — 999,000 failed conditional writes all retry simultaneously, creating a thundering herd that can overwhelm DynamoDB even with exponential backoff. The solution is to move the inventory counter to Redis. A Lua script runs atomically on Redis: 'if current_count > 0 then DECR count return 1 else return 0 end'. Redis is single-threaded for command execution, so this script is genuinely atomic — no locks needed, no retries. Redis handles 1M+ ops/sec on a single node. The 999,000 losing requests get an immediate 'sold out' response rather than retrying. Amazon also uses virtual queuing for major drops (a waiting room that meters users into checkout) to prevent the thundering herd from even reaching Redis.",
       },
     ],
     keyInsight:

@@ -91,6 +91,30 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
           '1:1 calls use WebRTC with STUN/TURN for NAT traversal. WhatsApp\'s relay servers (TURN) are used only when direct P2P UDP connection fails (~15% of calls). Group calls (up to 32 participants) use an SFU (Selective Forwarding Unit) — similar to Discord\'s architecture. Call signaling (ring, accept, reject) flows through the Chat Server persistent connection — not a separate signaling service — to avoid cold-start latency.',
         insight: 'Reusing the existing persistent Chat Server connection for call signaling eliminates a separate signaling service and shaves 200–500ms off call setup time.',
       },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'WhatsApp chooses CP (Consistency + Partition Tolerance) for message ordering. The Signal Protocol\'s Double Ratchet requires strict message ordering — each message\'s decryption key is derived from the previous one in the chain. If messages arrive out of order, the recipient cannot decrypt them without buffering and reordering, which breaks the ratchet state. WhatsApp therefore prefers to delay delivery rather than deliver out-of-order. The offline queue in ScyllaDB stores messages with sequence numbers; the client only advances the ratchet after receiving messages in sequence. During a network partition, a message waits in the queue rather than being delivered out-of-order.',
+        insight: 'The cryptographic requirement of the Signal Protocol — not a business rule — forces the CP choice. Incorrect ordering is not just a UX problem; it causes decryption failure.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'WhatsApp uses Mnesia (Erlang\'s built-in distributed database) for session state — tracking which Chat Server each user is connected to, routing tables, and presence data. Mnesia is an in-memory relational store that fits naturally in the Erlang/OTP ecosystem WhatsApp is built on. For the offline message store, ScyllaDB (Cassandra-compatible) is used: messages are append-only (write once, read once on delivery, then delete), the access pattern is always by partition key (user_id), and no relational joins are needed. Cassandra/Scylla\'s LSM-tree write model is optimal for this append-heavy, TTL-driven workload. No SQL relational database is used in the hot path.',
+        insight: 'Matching the database to the access pattern: Mnesia for in-memory session routing (relational, tiny), ScyllaDB for the message queue (append-only, massive, key-based lookup).',
+      },
+      {
+        title: 'Message Delivery & Queuing',
+        description:
+          'WhatsApp uses a custom binary XMPP protocol over WebSocket as its transport. Message delivery is at-least-once: the server stores a message in the ScyllaDB queue and does not delete it until the recipient\'s device sends an explicit ACK stanza back through the WebSocket. If the TCP connection drops before the ACK, the message remains in the queue and is re-delivered on reconnect. The delivery receipt (double checkmark) is generated server-side after the ACK is received from the recipient device, then forwarded to the original sender. This two-phase commit (store-then-deliver-then-ACK-then-delete) ensures no message is silently lost.',
+        insight: 'At-least-once delivery with client ACK before queue deletion means a message may be delivered twice if the ACK is lost — clients deduplicate by message ID.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'WhatsApp uses a custom binary protocol derived from XMPP over persistent TCP connections (surfaced as WebSocket for web clients). Phone-number-based identity is central: user_id = phone number hash, enabling global routing without a separate identity system. Each geographic region has edge Chat Servers that terminate client connections locally, then use inter-region gRPC to forward messages to the recipient\'s region. This keeps the client-to-server hop short (< 50ms) even for cross-region messages. Binary protocol frames are 2–5× smaller than JSON equivalents — critical for 2G/3G users in emerging markets, which represent the majority of WhatsApp\'s user base.',
+        insight: 'Protocol efficiency compounds at 2B users: a 3× reduction in message size saves hundreds of petabytes of monthly bandwidth and meaningfully improves experience on poor mobile connections.',
+      },
     ],
 
     decisions: [
@@ -112,6 +136,24 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
         reason:
           "Naive group E2E would require the sender to encrypt separately for each of 1,024 members = 1,024 encrypt operations per message. Signal's Sender Keys: the sender distributes a Group Sender Key to all members once (when they join). Each message is encrypted once with the sender's key. Fan-out cost moves from sender's CPU to server delivery count — O(1) encryption, O(n) delivery.",
       },
+      {
+        question: 'CAP theorem: consistency vs availability for message ordering',
+        chosen: 'CP — consistency and partition tolerance, accepting delay over disorder',
+        reason:
+          'The Signal Protocol\'s Double Ratchet cryptographically requires in-order delivery — each message key is derived from the prior one. Out-of-order delivery causes decryption failure, not just a UX glitch. WhatsApp therefore queues messages server-side and delivers them sequentially, preferring delay over incorrect order during partitions.',
+      },
+      {
+        question: 'Database for offline message queue: SQL vs NoSQL',
+        chosen: 'ScyllaDB (Cassandra-compatible) for queue; Mnesia for session state',
+        reason:
+          'Message queue access is purely key-based (user_id), append-only, and TTL-driven — a perfect fit for Scylla\'s LSM-tree model. Mnesia handles in-memory session routing within the Erlang ecosystem with zero serialization overhead. No SQL joins are needed anywhere in the hot message path.',
+      },
+      {
+        question: 'Delivery guarantee: at-most-once vs at-least-once',
+        chosen: 'At-least-once with client-side deduplication by message ID',
+        reason:
+          'At-most-once delivery risks silent message loss if the TCP connection drops after delivery but before ACK. WhatsApp keeps messages in the queue until an explicit ACK is received from the recipient device. Duplicate deliveries (rare, on reconnect) are deduplicated by message ID on the client. For a messaging app, losing a message is far worse than briefly showing a duplicate.',
+      },
     ],
 
     interview: [
@@ -130,6 +172,14 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
       {
         q: 'How does WhatsApp maintain presence and typing indicators for 2 billion users without overloading servers?',
         a: "Presence and typing are ephemeral — never written to disk. Online status is derived from whether a user has an active WebSocket connection, stored in the in-memory routing table (Zookeeper). Typing indicators are Chat Server events routed peer-to-peer between Chat Servers in real time; they expire after 3 seconds with no persistence. Critically, WhatsApp limits presence fanout to contacts only — a user with 500 contacts generates presence events to 500 users, not 2B. This turns a potentially O(2B) broadcast into O(contacts) which averages ~100–500.",
+      },
+      {
+        q: 'How does WhatsApp guarantee message ordering?',
+        a: 'WhatsApp makes a CP (consistency over availability) trade-off driven by the Signal Protocol\'s cryptographic requirements. Each message\'s decryption key is derived from the prior message\'s key via the Double Ratchet — so messages must be processed in sequence or decryption fails entirely. Messages are stored in ScyllaDB with monotonically increasing sequence numbers per conversation. On delivery, the Chat Server sends messages in order and waits for the client ACK before advancing the sequence pointer. If a partition causes a delay, the message waits in queue rather than being delivered out-of-order. The constraint is cryptographic, not just a UX preference.',
+      },
+      {
+        q: 'How does WhatsApp handle offline message delivery for a user who is offline for weeks?',
+        a: 'When a recipient is offline, every inbound encrypted message is written to ScyllaDB partitioned by user_id, with a 30-day TTL enforced by Scylla\'s native TTL mechanism. Each row stores: message_id, sender_id, ciphertext, and sequence_number. When the user reconnects, the Chat Server queries Scylla for all rows with sequence_number greater than the client\'s last ACKed sequence, returns them in order, and streams them to the client over the restored WebSocket. Each delivered batch is ACKed; rows are deleted post-ACK. If the user stays offline beyond 30 days, Scylla\'s TTL expires the rows and the sender receives a delivery failure notification.',
       },
     ],
 
@@ -206,7 +256,7 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
       {
         title: 'The threading model — flat vs nested',
         description:
-          "Slack's threading model is intentionally shallow (one level deep — no infinite nesting). This simplifies the data model: every message has an optional parent_ts (timestamp of parent). Fetching \"messages + their reply counts\" for a channel view = one query for channel messages + a batch query for reply_count per parent. True infinite nesting (like Reddit) requires recursive CTEs or materialized paths — complex at Slack's message volume. The flat model scales linearly.",
+          "Slack's threading model is intentionally shallow (one level deep — no infinite nesting). This simplifies the data model: every message has an optional parent_ts (timestamp of parent). Fetching 'messages + their reply counts' for a channel view = one query for channel messages + a batch query for reply_count per parent. True infinite nesting (like Reddit) requires recursive CTEs or materialized paths — complex at Slack's message volume. The flat model scales linearly.",
         insight: 'Intentional constraints on product features (one-level threads) can dramatically simplify the underlying data model — a product decision with architectural consequences.',
       },
       {
@@ -219,13 +269,37 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
         title: 'MySQL for messaging — not Cassandra',
         description:
           "Slack chose MySQL despite messaging's reputation as a Cassandra use case. Reasons: (1) Messages in a channel are read in time order — MySQL B-tree index on timestamp gives O(log N) range queries; (2) Workspace data is naturally isolated — sharding by workspace_id gives even distribution; (3) MySQL transactions are used for atomic message + thread-reply-count updates; (4) Slack's engineering team had deep MySQL expertise and had already built tooling (Vitess for sharding). Cassandra's lack of secondary indexes and transactions was a worse trade-off given their access patterns.",
-        insight: 'Database selection should be driven by actual query patterns and team expertise, not technology trends — MySQL with Vitess outperformed the "obvious" NoSQL choice for Slack\'s workload.',
+        insight: "Database selection should be driven by actual query patterns and team expertise, not technology trends — MySQL with Vitess outperformed the 'obvious' NoSQL choice for Slack's workload.",
       },
       {
         title: 'Compliance exports and message retention',
         description:
           "Enterprise customers can configure message retention policies (30 days, 7 years, forever) and request full exports. Slack's compliance export is implemented as a daily batch job: query MySQL for all messages in the retention window per workspace → encrypt with customer-provided KMS key → write to S3 in GDPR-compliant format → notify customer. For real-time compliance (legal hold), Slack writes a copy of every message to a separate compliance Kafka topic consumed by a tamper-evident audit log store (write-once S3 with Object Lock).",
         insight: 'Write-once S3 Object Lock provides tamper-evident storage that satisfies legal hold requirements without building a custom immutable store.',
+      },
+      {
+        title: 'CAP Theorem Trade-off',
+        description:
+          'Slack chooses AP (Availability + Partition Tolerance) for channel messaging. In a distributed system, messages may briefly appear out of order when Gateway pods are behind different Kafka consumer offsets, or when a user reconnects to a different pod mid-session. Slack accepts this: availability (the channel stays usable during a partial outage) is prioritised over strict global ordering. To reconcile inconsistencies, Slack uses vector clocks on message metadata and client-side reconciliation — the client sorts messages by server-assigned timestamps and re-renders if a late message arrives. Eventual consistency is the explicit contract for channel feeds.',
+        insight: 'Choosing AP means Slack stays online during partial failures — critical because Slack is often the communication tool used to respond to those very failures.',
+      },
+      {
+        title: 'Database Architecture: SQL vs NoSQL',
+        description:
+          'Slack uses MySQL sharded by workspace_id for message storage. Each workspace fits neatly into a single shard (small-to-medium workspaces rarely exceed tens of millions of messages), enabling relational joins within a shard (messages + channel membership for ACL enforcement + thread reply counts). Vitess manages the sharding layer. For full-text search, Elasticsearch is used with workspace_id as the routing key — keeping all of a workspace\'s index on one shard group to avoid scatter-gather. Redis handles real-time presence (user_id → online status, gateway_pod_id) and acts as pub/sub backbone for cross-server message fan-out within the delivery tier.',
+        insight: 'MySQL for durability and relational queries, Elasticsearch for search, Redis for ephemeral real-time state — three databases, each chosen for a different access pattern.',
+      },
+      {
+        title: 'Message Delivery & Queuing',
+        description:
+          'Slack uses Kafka for durable, replayable message queuing between the API tier and the delivery tier, and also for populating the Elasticsearch index and the compliance audit log (fan-out to multiple consumers from one Kafka topic). However, direct real-time delivery to online users does NOT go through Kafka — it uses in-memory pub/sub within a Gateway pod cluster, backed by Redis pub/sub for cross-server fan-out. This two-layer approach means: Kafka provides durability and replay for indexing/compliance; Redis pub/sub provides low-latency (<5ms) in-memory routing to the correct Gateway pod. Messages that cannot be delivered (user offline) are not queued — clients fetch missed messages on reconnect by querying MySQL with a "last seen" cursor.',
+        insight: 'Kafka for durability and fan-out to batch consumers; Redis pub/sub for real-time sub-10ms delivery to Gateway pods — two message buses serving different latency requirements.',
+      },
+      {
+        title: 'Networking & Protocol Choices',
+        description:
+          'Slack uses WebSocket for all real-time communication (typing indicators, message delivery, presence updates, reaction events). REST HTTP/2 is used for CRUD operations (sending a message, fetching history, uploading files). File uploads go directly to S3 via pre-signed URLs, with CloudFront as CDN for downloads — the Slack API server is never in the upload data path. For Enterprise Grid customers with data residency requirements (EU, Japan), Slack deploys regional stacks with all data — MySQL, Elasticsearch, S3 — pinned to the customer\'s geographic region. WebSocket connections are terminated at regional load balancers, preventing data from leaving the residency boundary.',
+        insight: 'Pre-signed S3 URLs offload file upload bandwidth entirely from Slack\'s servers — a standard pattern that eliminates a massive bottleneck at zero architectural complexity cost.',
       },
     ],
 
@@ -248,6 +322,24 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
         reason:
           "Slack's event stream is bidirectional — clients send typing indicators, ACKs, and presence updates through the same connection. SSE is server-to-client only; clients would need separate HTTP requests for uploads. WebSocket's full-duplex model handles all real-time events in one connection. Trade-off: WebSocket requires stateful connection tracking (Redis pod registry), adding operational complexity vs stateless HTTP SSE.",
       },
+      {
+        question: 'CAP theorem: consistency vs availability for channel messaging',
+        chosen: 'AP — availability and partition tolerance, accepting brief message reordering',
+        reason:
+          'Slack prioritises availability because it is used as the incident-response tool during outages. If strict consistency required a channel to go read-only during a partition, the team coordinating the incident response would be silenced. Brief out-of-order delivery (reconciled client-side) is a far better trade-off than channel unavailability during the moments it matters most.',
+      },
+      {
+        question: 'Sharding strategy: by workspace vs by channel vs by user',
+        chosen: 'Shard MySQL by workspace_id',
+        reason:
+          'Workspace_id is the natural isolation boundary in Slack — all queries (messages, channels, members) are always scoped to a single workspace. Sharding by workspace_id means all data for one customer lives on one shard, enabling intra-shard joins and transactions without cross-shard coordination. Large enterprise workspaces that outgrow a single shard are given dedicated shards. Sharding by channel or user would scatter a single workspace\'s data across shards, requiring expensive cross-shard joins for every channel view.',
+      },
+      {
+        question: 'Delivery model: push (server fans out) vs pull (clients poll)',
+        chosen: 'Push via WebSocket with pull fallback on reconnect',
+        reason:
+          'Polling at 115K msg/sec with 8M concurrent users would require each client to poll frequently enough to appear real-time — generating billions of HTTP requests per second even when nothing changed. WebSocket push inverts this: the server sends only when there is something to deliver. Pull is reserved for reconnect recovery, where the client fetches missed messages using a cursor (last_seen_ts) against MySQL. The hybrid model avoids both the latency of polling and the complexity of maintaining push state for offline users.',
+      },
     ],
 
     interview: [
@@ -261,11 +353,19 @@ export const REALWORLD_MESSAGING_SYSTEMS: RealWorldSystem[] = [
       },
       {
         q: 'How does Slack implement message threading without infinite nesting complexity?',
-        a: "Slack's threading model is one level deep. Data model: every message row has an optional parent_ts column (the timestamp of the parent message — Slack uses timestamps as message IDs). Thread replies: INSERT with parent_ts set. Fetching a thread: SELECT * FROM messages WHERE channel_id = X AND parent_ts = Y ORDER BY ts. Reply counts and last_reply_ts are denormalized into the parent message row via an atomic UPDATE on each reply insertion — enabling the channel view to show \"5 replies, last reply 2h ago\" without a separate COUNT query. Flat model = O(1) denormalized reads for channel view.",
+        a: "Slack's threading model is one level deep. Data model: every message row has an optional parent_ts column (the timestamp of the parent message — Slack uses timestamps as message IDs). Thread replies: INSERT with parent_ts set. Fetching a thread: SELECT * FROM messages WHERE channel_id = X AND parent_ts = Y ORDER BY ts. Reply counts and last_reply_ts are denormalized into the parent message row via an atomic UPDATE on each reply insertion — enabling the channel view to show '5 replies, last reply 2h ago' without a separate COUNT query. Flat model = O(1) denormalized reads for channel view.",
       },
       {
         q: 'How does Slack handle compliance exports for enterprise customers storing years of messages?',
         a: "Two mechanisms: (1) Scheduled exports: a daily batch job queries MySQL for all messages in the customer's retention window, encrypts them with a customer-managed KMS key, and writes JSON-L files to S3 in a customer-accessible bucket. GDPR-compliant format with user IDs that can be mapped to PII separately. (2) Legal hold / real-time compliance: every message is dual-written to a compliance Kafka topic, consumed by an audit log service that writes to write-once S3 (Object Lock — WORM storage). This makes the audit log tamper-evident: even Slack engineers cannot modify or delete messages under legal hold. Retention policies are enforced by S3 lifecycle rules.",
+      },
+      {
+        q: 'Why does Slack shard MySQL by workspace instead of by channel or user?',
+        a: "Workspace_id is Slack's fundamental isolation boundary — every query is always scoped to a single workspace. Sharding by workspace means all of a customer's data (messages, channels, memberships, threads) sits on a single MySQL shard, enabling intra-shard joins and transactions without distributed coordination. A thread reply count UPDATE and the parent message SELECT happen in a single ACID transaction — impossible if the data were scattered across shards. Sharding by channel would require cross-shard joins to render a workspace's channel list; sharding by user would scatter a single conversation across multiple shards. Workspace sharding also simplifies data residency: a customer's shard can be pinned to an AWS region to meet regulatory requirements.",
+      },
+      {
+        q: 'How does Slack handle message delivery when a user is briefly offline or switches devices?',
+        a: "When a user disconnects, their Redis entry (user_id → gateway_pod_id) is removed. Messages sent during offline periods are durably stored in MySQL (they are written as part of the normal write path, not just for offline users). On reconnect, the client sends its last_seen_ts; the Gateway pod queries MySQL for all channel messages newer than that timestamp across the channels the user is a member of, and streams them in order. This pull-on-reconnect pattern means the server never needs to maintain a per-user offline queue — the MySQL message store itself serves as the recovery source. The client deduplicates against any messages already rendered from the WebSocket stream.",
       },
     ],
 
