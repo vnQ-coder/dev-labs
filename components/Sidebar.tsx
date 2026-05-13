@@ -60,7 +60,7 @@ const SIDEBAR_GROUPS = [
 export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   const router = useRouter();
   const params = useSearchParams();
-  const [activeCat, setActiveCat] = useState<string>('all');
+  const [activeCat, setActiveCat] = useState<string>('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     new Set(['system-design'])
   );
@@ -72,9 +72,7 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
   const currentConcept = params.get('concept');
   const currentView = params.get('view');
 
-  const filtered = CONCEPTS.filter(c =>
-    activeCat === 'all' || c.cat === activeCat
-  );
+  const filtered = CONCEPTS.filter(c => c.cat === activeCat);
 
   function navigate(href: string) {
     router.push(href);
@@ -167,36 +165,6 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
       {/* Scrollable area: accordion + concept list */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
 
-        {/* All concepts button */}
-        <div className="px-2 pb-1">
-          <button
-            onClick={() => setActiveCat('all')}
-            className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors"
-            style={{
-              background: activeCat === 'all' ? 'var(--accent)' : 'transparent',
-              color: activeCat === 'all' ? '#0d1117' : 'var(--tm)',
-            }}
-            onMouseEnter={e => {
-              if (activeCat !== 'all') e.currentTarget.style.background = 'var(--s3)';
-            }}
-            onMouseLeave={e => {
-              if (activeCat !== 'all') e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <span className="text-xs font-semibold">All Concepts</span>
-            <span
-              className="text-xs rounded px-1"
-              style={{
-                background: activeCat === 'all' ? 'rgba(0,0,0,0.15)' : 'var(--s3)',
-                color: activeCat === 'all' ? '#0d1117' : 'var(--td)',
-                fontSize: 10,
-              }}
-            >
-              {CONCEPTS.length}
-            </span>
-          </button>
-        </div>
-
         {/* Group accordion */}
         <div className="px-2 pb-2">
           {SIDEBAR_GROUPS.map(group => {
@@ -249,7 +217,7 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
                       return (
                         <button
                           key={catId}
-                          onClick={() => setActiveCat(isActive ? 'all' : catId)}
+                          onClick={() => setActiveCat(isActive ? '' : catId)}
                           className="w-full flex items-center gap-2 px-4 py-1.5 rounded-lg text-left transition-colors"
                           style={{
                             background: isActive ? `${cat.color}15` : 'transparent',
@@ -289,10 +257,11 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
           })}
         </div>
 
-        {/* Concept list */}
+        {/* Concept list — only shown when a category is selected */}
+        {activeCat && (
         <div className="px-2 pb-2" style={{ borderTop: '1px solid var(--b0)' }}>
           <div className="pt-2">
-            {CATEGORIES.filter(cat => activeCat === 'all' || cat.id === activeCat).map(cat => {
+            {CATEGORIES.filter(cat => cat.id === activeCat).map(cat => {
               const items = filtered.filter(c => c.cat === cat.id);
               if (items.length === 0) return null;
               return (
@@ -367,6 +336,7 @@ export default function Sidebar({ onClose, onOpenPalette }: SidebarProps) {
             })}
           </div>
         </div>
+        )}
       </div>
 
       {/* Footer nav */}
